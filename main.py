@@ -24,14 +24,15 @@ app.add_middleware(
 engine = pyttsx3.init()
 
 # ── GEMINI CONFIG ──────────────────────────────────────────────────────────────
-# 1. Limpieza ABSOLUTA de la clave (quita saltos de linea invisibles, espacios y comillas de Windows)
-raw_key = os.getenv("GEMINI_API_KEY", "")
-GEMINI_API_KEY = raw_key.replace("\r", "").replace("\n", "").replace('"', "").replace("'", "").strip()
+# Leemos la clave desde el archivo api_key.txt para evitar bugs de Windows
+GEMINI_API_KEY = ""
+if os.path.exists("api_key.txt"):
+    with open("api_key.txt", "r") as f:
+        # .strip() elimina cualquier salto de línea, espacio o basura
+        GEMINI_API_KEY = f.read().replace('"', '').replace("'", "").strip()
 
-# 2. Usamos el nombre real oficial (gemini-1.5-flash)
+# Modelo oficial de Google
 MODEL_NAME = "gemini-1.5-flash"
-
-# 3. URL final limpia
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={GEMINI_API_KEY}"
 
 SYSTEM_PROMPT = """Eres Jarvis, un asistente personal inteligente que corre en la PC del usuario.
@@ -163,14 +164,12 @@ def execute_action(action: str, search_query: str = "") -> None:
         subprocess.Popen(["start", f"https://www.google.com/search?q={q}"], shell=True)
     elif action == "SEARCH_YOUTUBE":
         q = search_query.replace(" ", "+")
-        # Corrección: Línea arreglada para abrir YouTube correctamente
         subprocess.Popen(["start", f"https://www.youtube.com/results?search_query={q}"], shell=True)
 
 # ── ENDPOINTS ─────────────────────────────────────────────────────────────────
 
 @app.get("/ping")
 async def ping():
-    """Usado por el frontend para verificar si la PC está online."""
     return JSONResponse({"status": "ok"})
 
 @app.post("/command")
@@ -229,16 +228,10 @@ if __name__ == "__main__":
     print("=" * 55)
     print()
     if not GEMINI_API_KEY:
-        print("⚠️  ATENCIÓN: No se detectó la API KEY.")
-        print("   Asegurate de iniciar usando el archivo .bat")
+        print("⚠️  ATENCION: No se encontro la API KEY en api_key.txt.")
+        print("   Por favor, ejecuta el archivo .bat para configurarla.")
         print()
     print("🚀  Backend local: http://127.0.0.1:8000")
-    print()
-    print("📡  Para exponerlo con ngrok:")
-    print("   1. Instalá ngrok: https://ngrok.com/download")
-    print("   2. En otra terminal: ngrok http 8000")
-    print("   3. Copiá la URL https://xxxx.ngrok-free.app")
-    print("   4. Pegala en el banner de la web")
     print()
     print("   Presioná Ctrl+C para detener")
     print()
