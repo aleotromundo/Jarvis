@@ -32,7 +32,7 @@ if os.path.exists("api_key.txt"):
         GEMINI_API_KEY = f.read().replace('"', '').replace("'", "").strip()
 
 # Modelo oficial de Google
-MODEL_NAME = "gemini-1.5-flash"
+MODEL_NAME = "gemini-2.0-flash-lite"
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={GEMINI_API_KEY}"
 
 SYSTEM_PROMPT = """Eres Jarvis, un asistente personal inteligente que corre en la PC del usuario.
@@ -86,10 +86,22 @@ async def ask_gemini(user_message: str) -> str:
         }
     }
 
-    async with httpx.AsyncClient(timeout=20.0) as client:
-        res = await client.post(GEMINI_URL, json=payload)
+    import asyncio
+    data = None
+    for attempt in range(3):
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            res = await client.post(GEMINI_URL, json=payload)
+        if res.status_code == 429:
+            wait = 2 ** attempt
+            print(f"  [429] Rate limit — reintentando en {wait}s (intento {attempt+1}/3)")
+            await asyncio.sleep(wait)
+            continue
         res.raise_for_status()
         data = res.json()
+        break
+
+    if data is None:
+        raise Exception("Rate limit de Gemini. Esperá unos segundos y reintentá.")
 
     reply = data["candidates"][0]["content"]["parts"][0]["text"].strip()
 

@@ -600,21 +600,15 @@
         setDot(ngrokDot, ngrokLabel, 'dim', 'NGROK: —');
       }
 
-      // 3. Sin backend
-      modeLabel.textContent = 'MODO: SIN BACKEND';
+      // 3. Sin backend local — modo cloud via Vercel
+      modeLabel.textContent = 'MODO: CLOUD';
       setDot(localDot, localLabel, 'red', 'LOCAL: OFFLINE');
+      enable();
       addMessage(
-        '⚠️ No se encontró el backend. Para usar JARVIS localmente:\n' +
-        '1. Corré jarvis.bat (o python main.py)\n' +
-        '2. Recargá la página.\n\n' +
-        'Si estás desde otro dispositivo, usá el botón 🌐 ACCESO REMOTO para pegar la URL de ngrok.',
+        'Backend local no detectado — modo cloud activo. Podés chatear normalmente.\n' +
+        'Para habilitar control de PC: corré jarvis.bat y recargá la página.',
         'jarvis'
       );
-      // Igual habilitamos el input para no bloquear la UI
-      textInput.disabled = false;
-      textInput.placeholder = 'Backend offline — iniciá main.py y recargá';
-      micBtn.disabled = false;
-      liveBtn.disabled = false;
     }
 
     // ── Conectar ngrok manualmente ────────────────────────────────────────────
@@ -647,46 +641,47 @@
       addMessage(text, 'user');
       showTyping();
 
-      if (!BACKEND_URL) {
-        removeTyping();
-        addMessage('Backend offline. Iniciá main.py (jarvis.bat) y recargá la página.', 'jarvis');
-        return;
+      // Si hay backend local/ngrok, usarlo (tiene acciones de PC)
+      if (BACKEND_URL) {
+        const headers = {
+          'Content-Type': 'application/json',
+          ...(BACKEND_URL !== LOCAL_BACKEND ? NGROK_HEADERS : {})
+        };
+        try {
+          const res  = await fetch(`${BACKEND_URL}/command`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ text }),
+            signal: AbortSignal.timeout(20000)
+          });
+          const data = await res.json();
+          removeTyping();
+          addMessage(data.response, 'jarvis', data.action_executed || false);
+          return;
+        } catch {
+          // Backend cayó — marcar offline y caer a Vercel
+          setDot(BACKEND_URL === LOCAL_BACKEND ? localDot : ngrokDot,
+                 BACKEND_URL === LOCAL_BACKEND ? localLabel : ngrokLabel,
+                 'red', BACKEND_URL === LOCAL_BACKEND ? 'LOCAL: OFFLINE' : 'NGROK: OFFLINE');
+          BACKEND_URL = '';
+          modeLabel.textContent = 'MODO: CLOUD';
+        }
       }
 
-      const headers = {
-        'Content-Type': 'application/json',
-        ...(BACKEND_URL !== LOCAL_BACKEND ? NGROK_HEADERS : {})
-      };
-
+      // Fallback: Vercel cloud (sin acciones de PC, solo chat IA)
       try {
-        const res  = await fetch(`${BACKEND_URL}/command`, {
+        const res  = await fetch('/api/chat', {
           method: 'POST',
-          headers,
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text }),
           signal: AbortSignal.timeout(20000)
         });
         const data = await res.json();
         removeTyping();
-
-        // Detectar si fue una acción (respuesta viene de execute_action)
-        const isAction = data.action_executed || false;
-        addMessage(data.response, 'jarvis', isAction);
-
-      } catch (err) {
+        addMessage(data.response, 'jarvis');
+      } catch {
         removeTyping();
-        // Intentar reconectar local antes de rendirnos
-        const localOk = await pingURL(LOCAL_BACKEND);
-        if (localOk && BACKEND_URL !== LOCAL_BACKEND) {
-          BACKEND_URL = LOCAL_BACKEND;
-          setDot(localDot, localLabel, 'green', 'LOCAL: CONECTADO');
-          modeLabel.textContent = 'MODO: LOCAL (reconectado)';
-          addMessage('Reconectado al backend local. Reintentá tu comando.', 'jarvis');
-        } else {
-          setDot(BACKEND_URL === LOCAL_BACKEND ? localDot : ngrokDot,
-                 BACKEND_URL === LOCAL_BACKEND ? localLabel : ngrokLabel,
-                 'red', BACKEND_URL === LOCAL_BACKEND ? 'LOCAL: ERROR' : 'NGROK: ERROR');
-          addMessage('Error de conexión. Verificá que main.py siga corriendo.', 'jarvis');
-        }
+        addMessage('Sin conexión con el servidor. Verificá tu internet.', 'jarvis');
       }
     }
 
@@ -731,6 +726,8 @@
       if (BACKEND_URL) {
         const h = BACKEND_URL !== LOCAL_BACKEND ? NGROK_HEADERS : {};
         await fetch(`${BACKEND_URL}/conversation`, { method: 'DELETE', headers: h }).catch(() => {});
+      } else {
+        await fetch('/api/chat', { method: 'DELETE' }).catch(() => {});
       }
       chat.innerHTML = '';
       addMessage('Sesión reiniciada. ¿En qué te puedo ayudar?', 'jarvis');
