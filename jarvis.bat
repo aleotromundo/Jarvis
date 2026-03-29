@@ -1,4 +1,5 @@
 @echo off
+setlocal enabledelayedexpansion
 title JARVIS — Iniciando...
 color 0B
 cls
@@ -20,24 +21,30 @@ if errorlevel 1 (
     exit /b
 )
 
+:: ── Detectar si la key está rota por el error anterior ────────
+if "%GEMINI_API_KEY%"=="!GEMINI_API_KEY!" (
+    set GEMINI_API_KEY=
+)
+
 :: ── Pedir API key si no está guardada ─────────────────────────
 if "%GEMINI_API_KEY%"=="" (
-    echo  [!] No se encontro la API key de Gemini.
+    echo  [!] No se encontro la API key de Gemini ^(o estaba corrupta^).
     echo.
     echo      Conseguila gratis en:
     echo      https://aistudio.google.com/app/apikey
     echo.
-    set /p GEMINI_API_KEY="  Pega tu API key aqui y presiona Enter: "
+    set /p NEW_API_KEY="  Pega tu API key aqui y presiona Enter: "
     echo.
 
-    if "!GEMINI_API_KEY!"=="" (
+    if "!NEW_API_KEY!"=="" (
         echo  [!] No ingresaste ninguna key. Saliendo.
         pause
         exit /b
     )
 
     :: Guardar permanentemente en el sistema
-    setx GEMINI_API_KEY "!GEMINI_API_KEY!" >nul
+    setx GEMINI_API_KEY "!NEW_API_KEY!" >nul
+    set GEMINI_API_KEY=!NEW_API_KEY!
     echo  [OK] API key guardada. No vas a tener que ingresarla de nuevo.
     echo.
 ) else (
@@ -68,7 +75,7 @@ if errorlevel 1 (
         echo.
         echo  [!] ngrok no encontrado.
         echo      Descargalo desde: https://ngrok.com/download
-        echo      Descomprime ngrok.exe en esta misma carpeta y volvé a correr este archivo.
+        echo      Descomprime ngrok.exe en esta misma carpeta y volve a correr este archivo.
         echo.
         pause
         exit /b
@@ -91,7 +98,7 @@ echo.
 :: ── Levantar todo ─────────────────────────────────────────────
 echo  Iniciando JARVIS...
 echo.
-start "JARVIS Backend" cmd /k "color 0B && set GEMINI_API_KEY=%GEMINI_API_KEY% && python main.py"
+start "JARVIS Backend" cmd /k "color 0B && set GEMINI_API_KEY=!GEMINI_API_KEY! && python main.py"
 timeout /t 3 /nobreak >nul
 start "JARVIS ngrok" cmd /k "color 0B && ngrok http 8000"
 
