@@ -18,24 +18,22 @@ if errorlevel 1 (
 )
 
 :: ── Pedir API key si no existe el archivo ─────────────────────
-if not exist "api_key.txt" (
-    echo  [!] No se encontro tu API key.
-    echo.
-    echo      Conseguila gratis en:
-    echo      https://aistudio.google.com/app/apikey
-    echo.
-    set /p NEW_API_KEY="  Pega tu NUEVA API key aqui y presiona Enter: "
-    
-    :: Guardar en un archivo de texto (Seguro y a prueba de fallos)
-    >api_key.txt echo !NEW_API_KEY!
-    echo.
-    echo  [OK] API key guardada en el archivo api_key.txt.
-    echo.
-) else (
-    echo  [OK] Archivo api_key.txt encontrado.
-    echo.
-)
+if exist "api_key.txt" goto dependencias
 
+echo  [!] No se encontro tu API key.
+echo.
+echo      Conseguila gratis en:
+echo      https://aistudio.google.com/app/apikey
+echo.
+set /p NEW_API_KEY="  Pega tu NUEVA API key aqui y presiona Enter: "
+
+:: Guardar en un archivo de texto (Modo seguro sin bloques IF)
+>api_key.txt echo %NEW_API_KEY%
+echo.
+echo  [OK] API key guardada en el archivo api_key.txt.
+echo.
+
+:dependencias
 :: ── Instalar dependencias si no estan ─────────────────────────
 echo  [1/3] Verificando dependencias Python...
 pip show fastapi >nul 2>&1

@@ -186,12 +186,14 @@ async def command(request: Request):
 
     response_text = raw
     parsed = try_parse_action(raw)
+    action_executed = False
     if parsed:
         action        = parsed.get("action", "")
         response_text = parsed.get("response", "Ejecutando...")
         search_query  = parsed.get("search_query", "")
         if action:
             execute_action(action, search_query)
+            action_executed = True
 
     try:
         engine.say(response_text)
@@ -199,7 +201,7 @@ async def command(request: Request):
     except Exception:
         pass
 
-    return JSONResponse({"response": response_text})
+    return JSONResponse({"response": response_text, "action_executed": action_executed})
 
 @app.delete("/conversation")
 async def clear_conversation():

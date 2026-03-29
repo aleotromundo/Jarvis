@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>JARVIS</title>
-  <link rel="manifest" href="manifest.json">
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -145,10 +144,11 @@
       transition: all 0.2s;
     }
     .hdr-btn:hover { border-color: var(--arc); color: var(--arc); box-shadow: 0 0 8px var(--arc-glow); }
-    #setupToggle { color: var(--gold); border-color: rgba(255,204,68,0.4); }
-    #setupToggle:hover { border-color: var(--gold); box-shadow: 0 0 8px rgba(255,204,68,0.3); color: var(--gold); }
+    #ngrokToggle { color: var(--gold); border-color: rgba(255,204,68,0.4); }
+    #ngrokToggle:hover { border-color: var(--gold); box-shadow: 0 0 8px rgba(255,204,68,0.3); color: var(--gold); }
 
-    #setup-panel {
+    /* ── NGROK PANEL (colapsable, solo para acceso remoto) ── */
+    #ngrok-panel {
       position: relative;
       z-index: 10;
       overflow: hidden;
@@ -156,120 +156,32 @@
       transition: max-height 0.4s cubic-bezier(0.4,0,0.2,1);
       flex-shrink: 0;
       background: rgba(5,18,30,0.97);
-      border-bottom: 1px solid rgba(0,212,255,0.15);
+      border-bottom: 1px solid rgba(255,204,68,0.15);
     }
-    #setup-panel.open { max-height: 600px; }
+    #ngrok-panel.open { max-height: 120px; }
 
-    .setup-inner {
-      padding: 20px 24px 24px;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-
-    .setup-title {
-      grid-column: 1 / -1;
-      font-family: 'Orbitron', monospace;
-      font-size: 0.65rem;
-      letter-spacing: 0.25em;
-      color: var(--gold);
-      border-bottom: 1px solid rgba(255,204,68,0.2);
-      padding-bottom: 10px;
-      margin-bottom: 4px;
-    }
-
-    .setup-step {
-      background: rgba(0,212,255,0.04);
-      border: 1px solid rgba(0,212,255,0.12);
-      border-radius: 2px;
-      padding: 14px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .step-header { display: flex; align-items: center; gap: 10px; }
-
-    .step-num {
-      font-family: 'Orbitron', monospace;
-      font-size: 1rem;
-      font-weight: 900;
-      color: var(--arc);
-      opacity: 0.5;
-      line-height: 1;
-    }
-
-    .step-name {
-      font-family: 'Orbitron', monospace;
-      font-size: 0.6rem;
-      letter-spacing: 0.15em;
-      color: var(--text);
-    }
-
-    .step-desc {
-      font-size: 0.82rem;
-      color: var(--text-dim);
-      line-height: 1.45;
-    }
-
-    .step-desc code {
-      font-family: monospace;
-      background: rgba(0,212,255,0.1);
-      color: var(--arc);
-      padding: 1px 5px;
-      border-radius: 2px;
-      font-size: 0.78rem;
-    }
-
-    .download-btn {
-      margin-top: 4px;
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      background: transparent;
-      border: 1px solid rgba(0,212,255,0.35);
-      color: var(--arc);
-      font-family: 'Orbitron', monospace;
-      font-size: 0.55rem;
-      letter-spacing: 0.12em;
-      padding: 7px 13px;
-      border-radius: 2px;
-      cursor: pointer;
-      text-decoration: none;
-      transition: all 0.2s;
-      width: fit-content;
-    }
-    .download-btn:hover { border-color: var(--arc); box-shadow: 0 0 10px var(--arc-glow); background: rgba(0,212,255,0.06); }
-    .download-btn.gold { color: var(--gold); border-color: rgba(255,204,68,0.4); }
-    .download-btn.gold:hover { border-color: var(--gold); box-shadow: 0 0 10px rgba(255,204,68,0.3); background: rgba(255,204,68,0.05); }
-
-    .step-note {
-      font-size: 0.72rem;
-      color: rgba(90,138,170,0.7);
-      font-style: italic;
-    }
-
-    #ngrok-banner {
-      position: relative;
-      z-index: 10;
+    .ngrok-inner {
+      padding: 14px 24px;
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 8px 24px;
-      background: rgba(0,212,255,0.05);
-      border-bottom: 1px solid rgba(0,212,255,0.12);
+      gap: 12px;
       font-family: 'Orbitron', monospace;
       font-size: 0.6rem;
-      letter-spacing: 0.1em;
-      color: var(--text-dim);
-      flex-shrink: 0;
+      letter-spacing: 0.08em;
     }
-    #ngrok-banner label { color: var(--arc); white-space: nowrap; }
+
+    .ngrok-inner label { color: var(--gold); white-space: nowrap; }
+
+    .ngrok-inner p {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      white-space: nowrap;
+    }
 
     #ngrokInput {
       flex: 1;
       background: rgba(0,30,50,0.7);
-      border: 1px solid rgba(0,212,255,0.2);
+      border: 1px solid rgba(255,204,68,0.2);
       border-radius: 2px;
       color: var(--text);
       font-family: 'Orbitron', monospace;
@@ -279,13 +191,13 @@
       letter-spacing: 0.05em;
       transition: border-color 0.2s;
     }
-    #ngrokInput:focus { border-color: var(--arc); }
+    #ngrokInput:focus { border-color: var(--gold); }
     #ngrokInput::placeholder { color: var(--text-dim); }
 
     #ngrokSave {
       background: transparent;
-      border: 1px solid rgba(0,212,255,0.3);
-      color: var(--arc);
+      border: 1px solid rgba(255,204,68,0.4);
+      color: var(--gold);
       font-family: 'Orbitron', monospace;
       font-size: 0.55rem;
       letter-spacing: 0.1em;
@@ -295,12 +207,31 @@
       transition: all 0.2s;
       white-space: nowrap;
     }
-    #ngrokSave:hover { box-shadow: 0 0 8px var(--arc-glow); }
+    #ngrokSave:hover { box-shadow: 0 0 8px rgba(255,204,68,0.3); }
 
-    #pcStatus { white-space: nowrap; display: flex; align-items: center; gap: 6px; }
-    #pcDot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-dim); }
-    #pcDot.online  { background: var(--green); box-shadow: 0 0 6px var(--green); }
-    #pcDot.offline { background: var(--red);   box-shadow: 0 0 6px var(--red); }
+    /* ── STATUS BAR ── */
+    #status-bar {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 6px 24px;
+      background: rgba(0,212,255,0.03);
+      border-bottom: 1px solid rgba(0,212,255,0.1);
+      font-family: 'Orbitron', monospace;
+      font-size: 0.58rem;
+      letter-spacing: 0.1em;
+      color: var(--text-dim);
+      flex-shrink: 0;
+    }
+
+    .status-item { display: flex; align-items: center; gap: 6px; }
+    .sdot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-dim); flex-shrink: 0; }
+    .sdot.green  { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .sdot.yellow { background: var(--gold);  box-shadow: 0 0 6px rgba(255,204,68,0.6); }
+    .sdot.red    { background: var(--red);   box-shadow: 0 0 6px var(--red); }
+    .sdot.dim    { background: var(--text-dim); }
 
     #chat {
       flex: 1;
@@ -366,6 +297,18 @@
       margin-bottom: 6px;
     }
 
+    .msg-action { border-left-color: var(--green); }
+    .msg-action::after {
+      content: '⚡ ACCIÓN EJECUTADA';
+      display: block;
+      font-family: 'Orbitron', monospace;
+      font-size: 0.5rem;
+      color: var(--green);
+      letter-spacing: 0.15em;
+      margin-top: 8px;
+      opacity: 0.7;
+    }
+
     .typing { display: flex; gap: 5px; align-items: center; padding: 16px; }
     .typing span { width: 6px; height: 6px; background: var(--arc); border-radius: 50%; animation: typingBounce 1.2s infinite; }
     .typing span:nth-child(2) { animation-delay: 0.2s; }
@@ -411,6 +354,7 @@
     }
     #textInput:focus { border-color: var(--arc); box-shadow: 0 0 15px var(--arc-glow), inset 0 0 10px rgba(0,212,255,0.05); }
     #textInput::placeholder { color: var(--text-dim); }
+    #textInput:disabled { opacity: 0.4; cursor: not-allowed; }
 
     .btn {
       width: 46px; height: 46px;
@@ -428,6 +372,7 @@
     .btn:hover { border-color: var(--arc); box-shadow: 0 0 12px var(--arc-glow); }
     .btn:active { transform: scale(0.96); }
     .btn.recording { border-color: var(--red); color: var(--red); animation: recPulse 1s infinite; }
+    .btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
     #liveBtn {
       width: auto; padding: 0 14px;
@@ -480,77 +425,35 @@
         <div class="status-dot"></div>
         <span>SISTEMA EN LÍNEA</span>
       </div>
-      <button class="hdr-btn" id="setupToggle">⚙ INSTALAR EN PC</button>
+      <button class="hdr-btn" id="ngrokToggle">🌐 ACCESO REMOTO</button>
       <button class="hdr-btn" id="clearBtn">LIMPIAR SESIÓN</button>
     </div>
   </header>
 
-  <div id="setup-panel">
-    <div class="setup-inner">
-      <div class="setup-title">⚙ INSTALACIÓN — HABILITAR CONTROL DE PC</div>
-
-      <div class="setup-step">
-        <div class="step-header">
-          <span class="step-num">01</span>
-          <span class="step-name">INSTALAR PYTHON</span>
-        </div>
-        <p class="step-desc">
-          Necesitás Python 3.10 o superior. Durante la instalación marcá la opción
-          <code>Add Python to PATH</code> o no va a funcionar.
-        </p>
-        <a class="download-btn" href="https://www.python.org/downloads/" target="_blank">↗ DESCARGAR PYTHON</a>
-      </div>
-
-      <div class="setup-step">
-        <div class="step-header">
-          <span class="step-num">02</span>
-          <span class="step-name">INSTALAR NGROK</span>
-        </div>
-        <p class="step-desc">
-          ngrok crea un túnel para que esta web llegue a tu PC.
-          Descargalo y dejá el <code>ngrok.exe</code> en la misma carpeta que <code>main.py</code>.
-          Creá una cuenta gratis y corré <code>ngrok config add-authtoken TU_TOKEN</code> una sola vez.
-        </p>
-        <a class="download-btn" href="https://ngrok.com/download" target="_blank">↗ DESCARGAR NGROK</a>
-      </div>
-
-      <div class="setup-step">
-        <div class="step-header">
-          <span class="step-num">03</span>
-          <span class="step-name">DESCARGAR BACKEND</span>
-        </div>
-        <p class="step-desc">
-          Descargá <code>main.py</code> y guardalo en una carpeta. La API key de Gemini
-          te la va a pedir el iniciador automáticamente — conseguila gratis en
-          <code>aistudio.google.com/app/apikey</code>.
-        </p>
-        <a class="download-btn" href="/main.py" download>↓ DESCARGAR MAIN.PY</a>
-      </div>
-
-      <div class="setup-step">
-        <div class="step-header">
-          <span class="step-num">04</span>
-          <span class="step-name">ARRANCAR CON UN CLICK</span>
-        </div>
-        <p class="step-desc">
-          Guardalo en la <strong>misma carpeta</strong> que <code>main.py</code> y <code>ngrok.exe</code>.
-          Doble click → esperá que se abran las ventanas → copiá la URL de ngrok → pegala abajo → CONECTAR.
-        </p>
-        <a class="download-btn gold" href="/jarvis.bat" download>↓ DESCARGAR JARVIS.BAT</a>
-        <p class="step-note">Solo Windows. En Mac/Linux corrés <code>python main.py</code> y <code>ngrok http 8000</code> manualmente.</p>
-      </div>
-
+  <!-- Panel ngrok: solo para acceso desde celular/otro dispositivo -->
+  <div id="ngrok-panel">
+    <div class="ngrok-inner">
+      <label>NGROK (acceso remoto) →</label>
+      <input id="ngrokInput" placeholder="https://xxxx-xx-xx-xx-xx.ngrok-free.app" autocomplete="off" spellcheck="false">
+      <button id="ngrokSave">CONECTAR</button>
+      <p style="color:var(--text-dim); font-size:0.65rem;">Solo necesario desde celular u otra PC</p>
     </div>
   </div>
 
-  <div id="ngrok-banner">
-    <label>PC BACKEND →</label>
-    <input id="ngrokInput" placeholder="https://xxxx-xx-xx-xx-xx.ngrok-free.app" autocomplete="off" spellcheck="false">
-    <button id="ngrokSave">CONECTAR</button>
-    <span id="pcStatus">
-      <span id="pcDot"></span>
-      <span id="pcLabel">SIN CONECTAR</span>
-    </span>
+  <!-- Barra de estado de conexiones -->
+  <div id="status-bar">
+    <div class="status-item">
+      <div class="sdot" id="localDot"></div>
+      <span id="localLabel">LOCAL: —</span>
+    </div>
+    <div class="status-item">
+      <div class="sdot dim" id="ngrokDot"></div>
+      <span id="ngrokLabel">NGROK: —</span>
+    </div>
+    <div class="status-item" style="margin-left:auto;">
+      <div class="sdot green"></div>
+      <span id="modeLabel">MODO: —</span>
+    </div>
   </div>
 
   <div id="chat"></div>
@@ -558,14 +461,29 @@
   <div id="input-area">
     <div class="input-row">
       <div class="input-wrapper">
-        <input id="textInput" placeholder="Ingresá un comando o pregunta..." autocomplete="off">
+        <input id="textInput" placeholder="Iniciando sistemas..." autocomplete="off" disabled>
       </div>
-      <button class="btn" id="micBtn" title="Micrófono">🎤</button>
-      <button class="btn" id="liveBtn">LIVE</button>
+      <button class="btn" id="micBtn" title="Micrófono" disabled>🎤</button>
+      <button class="btn" id="liveBtn" disabled>LIVE</button>
     </div>
   </div>
 
   <script>
+    // ─────────────────────────────────────────────────────────────────────────
+    // JARVIS — frontend unificado para uso local y remoto
+    //
+    // Lógica de conexión (en orden de prioridad):
+    //   1. Si estamos en localhost/127.0.0.1 → conectar directo a localhost:8000
+    //   2. Si hay una URL de ngrok guardada → usar esa
+    //   3. Si ninguna funciona → mostrar error claro
+    //
+    // NO hay fallback a /api/chat (endpoint de Vercel que no existe en local).
+    // ─────────────────────────────────────────────────────────────────────────
+
+    const NGROK_HEADERS    = { 'ngrok-skip-browser-warning': '1' };
+    const LOCAL_BACKEND    = 'http://127.0.0.1:8000';
+    const PING_TIMEOUT_MS  = 3000;
+
     const chat        = document.getElementById('chat');
     const textInput   = document.getElementById('textInput');
     const micBtn      = document.getElementById('micBtn');
@@ -573,40 +491,44 @@
     const clearBtn    = document.getElementById('clearBtn');
     const ngrokInput  = document.getElementById('ngrokInput');
     const ngrokSave   = document.getElementById('ngrokSave');
-    const pcDot       = document.getElementById('pcDot');
-    const pcLabel     = document.getElementById('pcLabel');
-    const setupPanel  = document.getElementById('setup-panel');
-    const setupToggle = document.getElementById('setupToggle');
+    const ngrokPanel  = document.getElementById('ngrok-panel');
+    const ngrokToggle = document.getElementById('ngrokToggle');
+    const localDot    = document.getElementById('localDot');
+    const localLabel  = document.getElementById('localLabel');
+    const ngrokDot    = document.getElementById('ngrokDot');
+    const ngrokLabel  = document.getElementById('ngrokLabel');
+    const modeLabel   = document.getElementById('modeLabel');
 
-    // Header que salta la pantalla de advertencia de ngrok
-    const NGROK_HEADERS = {
-      'ngrok-skip-browser-warning': '1'
-    };
-
-    let BACKEND_URL = localStorage.getItem('jarvis_backend') || '';
-    let pcOnline    = false;
+    let BACKEND_URL   = '';   // URL activa que se usa para /command
     let recognition;
-    let isLive      = false;
+    let isLive        = false;
 
-    if (BACKEND_URL) ngrokInput.value = BACKEND_URL;
+    // ── Cargar ngrok guardado ─────────────────────────────────────────────────
+    const savedNgrok = localStorage.getItem('jarvis_ngrok') || '';
+    if (savedNgrok) ngrokInput.value = savedNgrok;
 
-    // ── Setup toggle ──
-    setupToggle.onclick = () => {
-      const open = setupPanel.classList.toggle('open');
-      setupToggle.textContent = open ? '✕ CERRAR' : '⚙ INSTALAR EN PC';
+    // ── Ngrok panel toggle ────────────────────────────────────────────────────
+    ngrokToggle.onclick = () => {
+      const open = ngrokPanel.classList.toggle('open');
+      ngrokToggle.textContent = open ? '✕ CERRAR' : '🌐 ACCESO REMOTO';
     };
 
-    // ── PC status ──
-    function setPcStatus(online) {
-      pcOnline = online;
-      pcDot.className     = online ? 'online' : 'offline';
-      pcLabel.textContent = online ? 'PC CONECTADA' : 'PC OFFLINE';
+    // ── Helpers de UI ─────────────────────────────────────────────────────────
+    function setDot(dotEl, labelEl, state, text) {
+      dotEl.className = 'sdot ' + state;
+      labelEl.textContent = text;
     }
 
-    // ── Chat helpers ──
-    function addMessage(text, who) {
+    function enable() {
+      textInput.disabled = false;
+      micBtn.disabled    = false;
+      liveBtn.disabled   = false;
+      textInput.placeholder = 'Ingresá un comando o pregunta...';
+    }
+
+    function addMessage(text, who, isAction = false) {
       const div = document.createElement('div');
-      div.className = `message ${who}`;
+      div.className = `message ${who}${isAction ? ' msg-action' : ''}`;
       div.textContent = text;
       chat.appendChild(div);
       chat.scrollTop = chat.scrollHeight;
@@ -627,84 +549,148 @@
       if (t) t.remove();
     }
 
-    // ── Ping — con header ngrok ──
-    async function pingBackend(url) {
-      if (!url) { setPcStatus(false); return false; }
+    // ── Ping con timeout ──────────────────────────────────────────────────────
+    async function pingURL(url, extraHeaders = {}) {
       try {
         const res = await fetch(`${url}/ping`, {
-          signal: AbortSignal.timeout(4000),
-          headers: NGROK_HEADERS
+          signal: AbortSignal.timeout(PING_TIMEOUT_MS),
+          headers: extraHeaders
         });
-        setPcStatus(res.ok);
         return res.ok;
       } catch {
-        setPcStatus(false);
         return false;
       }
     }
 
-    // ── Guardar URL ──
-    ngrokSave.onclick = async () => {
-      let url = ngrokInput.value.trim().replace(/\/$/, '');
-      // Limpiar si pegan la línea completa con " -> ..."
-      url = url.split(' ')[0];
-      if (!url) return;
-      BACKEND_URL = url;
-      localStorage.setItem('jarvis_backend', url);
-      ngrokSave.textContent = '...';
-      const ok = await pingBackend(url);
-      ngrokSave.textContent = 'CONECTAR';
-      if (ok) {
-        addMessage('✅ PC conectada. Control de escritorio habilitado.', 'jarvis');
-        setupPanel.classList.remove('open');
-        setupToggle.textContent = '⚙ INSTALAR EN PC';
+    // ── Inicialización: detectar backend disponible ───────────────────────────
+    async function init() {
+      addMessage('Iniciando sistemas...', 'jarvis');
+
+      const isLocalhost = ['localhost', '127.0.0.1'].includes(location.hostname);
+
+      // 1. Intentar localhost:8000
+      const localOk = await pingURL(LOCAL_BACKEND);
+
+      if (localOk) {
+        BACKEND_URL = LOCAL_BACKEND;
+        setDot(localDot, localLabel, 'green', 'LOCAL: CONECTADO');
+        modeLabel.textContent = 'MODO: LOCAL';
+        enable();
+        addMessage('Backend local detectado en puerto 8000. Control de PC habilitado.', 'jarvis');
+        return;
       } else {
-        addMessage(`⚠️ No pude alcanzar ${url}. ¿Corriste jarvis.bat? ¿Está ngrok activo?`, 'jarvis');
+        setDot(localDot, localLabel, 'red', 'LOCAL: OFFLINE');
+      }
+
+      // 2. Intentar ngrok guardado
+      const savedURL = localStorage.getItem('jarvis_ngrok') || '';
+      if (savedURL) {
+        const ngrokOk = await pingURL(savedURL, NGROK_HEADERS);
+        if (ngrokOk) {
+          BACKEND_URL = savedURL;
+          setDot(ngrokDot, ngrokLabel, 'green', 'NGROK: CONECTADO');
+          modeLabel.textContent = 'MODO: NGROK';
+          enable();
+          addMessage('Conectado vía ngrok. Control de PC habilitado.', 'jarvis');
+          return;
+        } else {
+          setDot(ngrokDot, ngrokLabel, 'red', 'NGROK: OFFLINE');
+        }
+      } else {
+        setDot(ngrokDot, ngrokLabel, 'dim', 'NGROK: —');
+      }
+
+      // 3. Sin backend
+      modeLabel.textContent = 'MODO: SIN BACKEND';
+      setDot(localDot, localLabel, 'red', 'LOCAL: OFFLINE');
+      addMessage(
+        '⚠️ No se encontró el backend. Para usar JARVIS localmente:\n' +
+        '1. Corré jarvis.bat (o python main.py)\n' +
+        '2. Recargá la página.\n\n' +
+        'Si estás desde otro dispositivo, usá el botón 🌐 ACCESO REMOTO para pegar la URL de ngrok.',
+        'jarvis'
+      );
+      // Igual habilitamos el input para no bloquear la UI
+      textInput.disabled = false;
+      textInput.placeholder = 'Backend offline — iniciá main.py y recargá';
+      micBtn.disabled = false;
+      liveBtn.disabled = false;
+    }
+
+    // ── Conectar ngrok manualmente ────────────────────────────────────────────
+    ngrokSave.onclick = async () => {
+      let url = ngrokInput.value.trim().replace(/\/$/, '').split(' ')[0];
+      if (!url) return;
+
+      ngrokSave.textContent = '...';
+      const ok = await pingURL(url, NGROK_HEADERS);
+      ngrokSave.textContent = 'CONECTAR';
+
+      if (ok) {
+        BACKEND_URL = url;
+        localStorage.setItem('jarvis_ngrok', url);
+        setDot(ngrokDot, ngrokLabel, 'green', 'NGROK: CONECTADO');
+        modeLabel.textContent = 'MODO: NGROK';
+        enable();
+        ngrokPanel.classList.remove('open');
+        ngrokToggle.textContent = '🌐 ACCESO REMOTO';
+        addMessage('✅ Conectado vía ngrok. Control de PC habilitado.', 'jarvis');
+      } else {
+        addMessage(`⚠️ No se pudo alcanzar ${url}. ¿Está ngrok corriendo?`, 'jarvis');
       }
     };
 
-    if (BACKEND_URL) pingBackend(BACKEND_URL);
-
-    // ── Enviar ──
+    // ── Enviar comando ────────────────────────────────────────────────────────
     async function sendToJarvis(text) {
       if (!text.trim()) return;
+
       addMessage(text, 'user');
       showTyping();
 
-      if (pcOnline && BACKEND_URL) {
-        try {
-          const res  = await fetch(`${BACKEND_URL}/command`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...NGROK_HEADERS
-            },
-            body: JSON.stringify({ text })
-          });
-          const data = await res.json();
-          removeTyping();
-          addMessage(data.response, 'jarvis');
-          return;
-        } catch { setPcStatus(false); }
+      if (!BACKEND_URL) {
+        removeTyping();
+        addMessage('Backend offline. Iniciá main.py (jarvis.bat) y recargá la página.', 'jarvis');
+        return;
       }
 
-      // Fallback cloud
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(BACKEND_URL !== LOCAL_BACKEND ? NGROK_HEADERS : {})
+      };
+
       try {
-        const res  = await fetch('/api/chat', {
+        const res  = await fetch(`${BACKEND_URL}/command`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text })
+          headers,
+          body: JSON.stringify({ text }),
+          signal: AbortSignal.timeout(20000)
         });
         const data = await res.json();
         removeTyping();
-        addMessage(data.response, 'jarvis');
-      } catch {
+
+        // Detectar si fue una acción (respuesta viene de execute_action)
+        const isAction = data.action_executed || false;
+        addMessage(data.response, 'jarvis', isAction);
+
+      } catch (err) {
         removeTyping();
-        addMessage('Error de conexión con el servidor.', 'jarvis');
+        // Intentar reconectar local antes de rendirnos
+        const localOk = await pingURL(LOCAL_BACKEND);
+        if (localOk && BACKEND_URL !== LOCAL_BACKEND) {
+          BACKEND_URL = LOCAL_BACKEND;
+          setDot(localDot, localLabel, 'green', 'LOCAL: CONECTADO');
+          modeLabel.textContent = 'MODO: LOCAL (reconectado)';
+          addMessage('Reconectado al backend local. Reintentá tu comando.', 'jarvis');
+        } else {
+          setDot(BACKEND_URL === LOCAL_BACKEND ? localDot : ngrokDot,
+                 BACKEND_URL === LOCAL_BACKEND ? localLabel : ngrokLabel,
+                 'red', BACKEND_URL === LOCAL_BACKEND ? 'LOCAL: ERROR' : 'NGROK: ERROR');
+          addMessage('Error de conexión. Verificá que main.py siga corriendo.', 'jarvis');
+        }
       }
     }
 
-    // ── Mic ──
+    // ── Mic ──────────────────────────────────────────────────────────────────
     micBtn.onclick = () => {
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SR) { alert("Tu navegador no soporta reconocimiento de voz"); return; }
@@ -712,12 +698,12 @@
       const r = new SR();
       r.lang = 'es-ES'; r.interimResults = false; r.maxAlternatives = 1;
       r.onresult = e => { sendToJarvis(e.results[0][0].transcript); micBtn.classList.remove('recording'); };
-      r.onerror = () => micBtn.classList.remove('recording');
-      r.onend   = () => micBtn.classList.remove('recording');
+      r.onerror  = () => micBtn.classList.remove('recording');
+      r.onend    = () => micBtn.classList.remove('recording');
       r.start();
     };
 
-    // ── Live ──
+    // ── Live ─────────────────────────────────────────────────────────────────
     liveBtn.onclick = () => {
       isLive = !isLive;
       liveBtn.textContent = isLive ? '● LIVE' : 'LIVE';
@@ -740,30 +726,26 @@
       recognition.start();
     }
 
-    // ── Clear ──
+    // ── Limpiar sesión ────────────────────────────────────────────────────────
     clearBtn.onclick = async () => {
-      if (pcOnline && BACKEND_URL) {
-        await fetch(`${BACKEND_URL}/conversation`, {
-          method: 'DELETE',
-          headers: NGROK_HEADERS
-        }).catch(() => {});
+      if (BACKEND_URL) {
+        const h = BACKEND_URL !== LOCAL_BACKEND ? NGROK_HEADERS : {};
+        await fetch(`${BACKEND_URL}/conversation`, { method: 'DELETE', headers: h }).catch(() => {});
       }
-      await fetch('/api/clear', { method: 'DELETE' }).catch(() => {});
       chat.innerHTML = '';
       addMessage('Sesión reiniciada. ¿En qué te puedo ayudar?', 'jarvis');
     };
 
-    // ── Enter ──
+    // ── Enter ─────────────────────────────────────────────────────────────────
     textInput.addEventListener('keypress', e => {
-      if (e.key === 'Enter') { sendToJarvis(textInput.value); textInput.value = ''; }
+      if (e.key === 'Enter' && !textInput.disabled) {
+        const v = textInput.value.trim();
+        if (v) { sendToJarvis(v); textInput.value = ''; }
+      }
     });
 
-    // ── PWA ──
-    window.addEventListener('load', () => {
-      if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
-    });
-
-    addMessage('Sistemas en línea. Para controlar tu PC, hacé click en ⚙ INSTALAR EN PC arriba y seguí los pasos.', 'jarvis');
+    // ── Arrancar ──────────────────────────────────────────────────────────────
+    init();
   </script>
 </body>
 </html>
