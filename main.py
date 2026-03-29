@@ -25,7 +25,7 @@ engine = pyttsx3.init()
 
 # ── GEMINI CONFIG ──────────────────────────────────────────────────────────────
 # Conseguí tu API key GRATIS en: https://aistudio.google.com/app/apikey
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AIzaSyA8S3YfyNmGwKjs8Q1O81H65fT0_k_47ws")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AQUI LA API DE GEMINI")
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key={GEMINI_API_KEY}"
 
 SYSTEM_PROMPT = """Eres Jarvis, un asistente personal inteligente que corre en la PC del usuario.
