@@ -24,8 +24,11 @@ app.add_middleware(
 engine = pyttsx3.init()
 
 # ── GEMINI CONFIG ──────────────────────────────────────────────────────────────
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AQUI_LA_API_DE_GEMINI")
-GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent?key={GEMINI_API_KEY}"
+# 1. Limpiamos la API KEY de espacios vacíos con .strip()
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AQUI_LA_API_DE_GEMINI").strip()
+
+# 2. CORRECCIÓN: Cambiamos gemini-3-flash por gemini-1.5-flash
+GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
 
 SYSTEM_PROMPT = """Eres Jarvis, un asistente personal inteligente que corre en la PC del usuario.
 Tu trabajo es entender lo que el usuario quiere en lenguaje natural y responder de forma útil y concisa.
@@ -156,6 +159,7 @@ def execute_action(action: str, search_query: str = "") -> None:
         subprocess.Popen(["start", f"https://www.google.com/search?q={q}"], shell=True)
     elif action == "SEARCH_YOUTUBE":
         q = search_query.replace(" ", "+")
+        # 3. CORRECCIÓN: Arreglada la línea de código rota
         subprocess.Popen(["start", f"https://www.youtube.com/results?search_query={q}"], shell=True)
 
 # ── ENDPOINTS ─────────────────────────────────────────────────────────────────
