@@ -24,9 +24,8 @@ app.add_middleware(
 engine = pyttsx3.init()
 
 # ── GEMINI CONFIG ──────────────────────────────────────────────────────────────
-# Conseguí tu API key GRATIS en: https://aistudio.google.com/app/apikey
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AQUI LA API DE GEMINI")
-GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key={GEMINI_API_KEY}"
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AQUI_LA_API_DE_GEMINI")
+GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
 
 SYSTEM_PROMPT = """Eres Jarvis, un asistente personal inteligente que corre en la PC del usuario.
 Tu trabajo es entender lo que el usuario quiere en lenguaje natural y responder de forma útil y concisa.
@@ -95,7 +94,6 @@ async def ask_gemini(user_message: str) -> str:
 
 # ── PARSE JSON ROBUSTO ────────────────────────────────────────────────────────
 def try_parse_action(raw: str):
-    """Intenta extraer un JSON de acción del texto, incluso si está incompleto."""
     clean = raw.strip()
     clean = re.sub(r'^```json\s*', '', clean)
     clean = re.sub(r'^```\s*', '', clean)
@@ -105,13 +103,11 @@ def try_parse_action(raw: str):
     if not clean.startswith("{"):
         return None
 
-    # Intentar parsear directo
     try:
         return json.loads(clean)
     except json.JSONDecodeError:
         pass
 
-    # Extraer primer JSON completo con regex
     match = re.search(r'\{.*?\}', clean, re.DOTALL)
     if match:
         try:
@@ -119,10 +115,9 @@ def try_parse_action(raw: str):
         except json.JSONDecodeError:
             pass
 
-    # Extraer campos clave manualmente si el JSON está incompleto
-    action_match = re.search(r'"action"\s*:\s*"([^"]+)"', clean)
+    action_match   = re.search(r'"action"\s*:\s*"([^"]+)"', clean)
     response_match = re.search(r'"response"\s*:\s*"([^"]+)"', clean)
-    query_match = re.search(r'"search_query"\s*:\s*"([^"]+)"', clean)
+    query_match    = re.search(r'"search_query"\s*:\s*"([^"]+)"', clean)
 
     if action_match:
         result = {"action": action_match.group(1)}
@@ -164,6 +159,12 @@ def execute_action(action: str, search_query: str = "") -> None:
         subprocess.Popen(["start", f"https://www.youtube.com/results?search_query={q}"], shell=True)
 
 # ── ENDPOINTS ─────────────────────────────────────────────────────────────────
+
+@app.get("/ping")
+async def ping():
+    """Usado por el frontend para verificar si la PC está online."""
+    return JSONResponse({"status": "ok"})
+
 @app.post("/command")
 async def command(request: Request):
     data = await request.json()
@@ -179,13 +180,12 @@ async def command(request: Request):
     response_text = raw
     parsed = try_parse_action(raw)
     if parsed:
-        action = parsed.get("action", "")
+        action        = parsed.get("action", "")
         response_text = parsed.get("response", "Ejecutando...")
-        search_query = parsed.get("search_query", "")
+        search_query  = parsed.get("search_query", "")
         if action:
             execute_action(action, search_query)
 
-    # TTS
     try:
         engine.say(response_text)
         engine.runAndWait()
@@ -200,7 +200,6 @@ async def clear_conversation():
     conversation_history = []
     return JSONResponse({"status": "Conversación reiniciada"})
 
-# ── STATIC FILES (sin StaticFiles mount para no pisar los endpoints) ──────────
 @app.get("/")
 async def serve_index():
     return FileResponse("index.html")
@@ -217,17 +216,23 @@ async def serve_file(filename: str):
 
 # ── MAIN ──────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    print("=" * 50)
+    print("=" * 55)
     print("🤖  JARVIS AI  —  Powered by Gemini")
-    print("=" * 50)
+    print("=" * 55)
     print()
-    if GEMINI_API_KEY == "TU_API_KEY_AQUI":
-        print("⚠️  ATENCIÓN: Configurá tu API key de Gemini")
-        print("   1. Andá a: https://aistudio.google.com/app/apikey")
-        print("   2. Creá una key gratuita")
-        print("   3. Reemplazá 'TU_API_KEY_AQUI' en este archivo")
+    if GEMINI_API_KEY == "AQUI_LA_API_DE_GEMINI":
+        print("⚠️  Configurá tu GEMINI_API_KEY:")
+        print("   set GEMINI_API_KEY=tu_key_aqui   (Windows CMD)")
+        print("   $env:GEMINI_API_KEY='tu_key'     (PowerShell)")
         print()
-    print("🚀  Servidor corriendo en: http://127.0.0.1:8000")
+    print("🚀  Backend local: http://127.0.0.1:8000")
+    print()
+    print("📡  Para exponerlo con ngrok:")
+    print("   1. Instalá ngrok: https://ngrok.com/download")
+    print("   2. En otra terminal: ngrok http 8000")
+    print("   3. Copiá la URL https://xxxx.ngrok-free.app")
+    print("   4. Pegala en el banner de la web de Vercel")
+    print()
     print("   Presioná Ctrl+C para detener")
     print()
     uvicorn.run(app, host="127.0.0.1", port=8000)

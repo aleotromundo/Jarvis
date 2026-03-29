@@ -19,6 +19,7 @@
       --text-dim: #5a8aaa;
       --red: #ff4455;
       --gold: #ffcc44;
+      --green: #44ff88;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -55,6 +56,28 @@
       z-index: 0;
     }
 
+    .corner {
+      position: fixed;
+      width: 60px; height: 60px;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .corner.tl { top: 0; left: 0; border-top: 2px solid var(--arc); border-left: 2px solid var(--arc); }
+    .corner.tr { top: 0; right: 0; border-top: 2px solid var(--arc); border-right: 2px solid var(--arc); }
+    .corner.bl { bottom: 0; left: 0; border-bottom: 2px solid var(--arc); border-left: 2px solid var(--arc); }
+    .corner.br { bottom: 0; right: 0; border-bottom: 2px solid var(--arc); border-right: 2px solid var(--arc); }
+
+    .arc-reactor {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px; height: 600px;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.07;
+    }
+
+    /* ── HEADER ── */
     header {
       position: relative;
       z-index: 10;
@@ -64,6 +87,7 @@
       padding: 14px 24px;
       border-bottom: 1px solid rgba(0,212,255,0.2);
       background: linear-gradient(180deg, rgba(0,30,50,0.9) 0%, transparent 100%);
+      flex-shrink: 0;
     }
 
     .logo {
@@ -85,10 +109,16 @@
       font-weight: 400;
     }
 
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
     .status-bar {
       display: flex;
       align-items: center;
-      gap: 20px;
+      gap: 12px;
       font-size: 0.7rem;
       font-family: 'Orbitron', monospace;
       color: var(--text-dim);
@@ -103,7 +133,7 @@
       animation: pulse 2s infinite;
     }
 
-    #clearBtn {
+    .hdr-btn {
       background: transparent;
       border: 1px solid rgba(0,212,255,0.3);
       color: var(--text-dim);
@@ -115,24 +145,167 @@
       border-radius: 2px;
       transition: all 0.2s;
     }
-    #clearBtn:hover {
-      border-color: var(--arc);
+    .hdr-btn:hover { border-color: var(--arc); color: var(--arc); box-shadow: 0 0 8px var(--arc-glow); }
+    #setupToggle { color: var(--gold); border-color: rgba(255,204,68,0.4); }
+    #setupToggle:hover { border-color: var(--gold); box-shadow: 0 0 8px rgba(255,204,68,0.3); color: var(--gold); }
+
+    /* ── SETUP PANEL ── */
+    #setup-panel {
+      position: relative;
+      z-index: 10;
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height 0.4s cubic-bezier(0.4,0,0.2,1);
+      flex-shrink: 0;
+      background: rgba(5,18,30,0.97);
+      border-bottom: 1px solid rgba(0,212,255,0.15);
+    }
+    #setup-panel.open { max-height: 600px; }
+
+    .setup-inner {
+      padding: 20px 24px 24px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .setup-title {
+      grid-column: 1 / -1;
+      font-family: 'Orbitron', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.25em;
+      color: var(--gold);
+      border-bottom: 1px solid rgba(255,204,68,0.2);
+      padding-bottom: 10px;
+      margin-bottom: 4px;
+    }
+
+    .setup-step {
+      background: rgba(0,212,255,0.04);
+      border: 1px solid rgba(0,212,255,0.12);
+      border-radius: 2px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .step-header { display: flex; align-items: center; gap: 10px; }
+
+    .step-num {
+      font-family: 'Orbitron', monospace;
+      font-size: 1rem;
+      font-weight: 900;
       color: var(--arc);
-      box-shadow: 0 0 8px var(--arc-glow);
+      opacity: 0.5;
+      line-height: 1;
     }
 
-    .arc-reactor {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 600px;
-      height: 600px;
-      pointer-events: none;
-      z-index: 0;
-      opacity: 0.07;
+    .step-name {
+      font-family: 'Orbitron', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.15em;
+      color: var(--text);
     }
 
+    .step-desc {
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      line-height: 1.45;
+    }
+
+    .step-desc code {
+      font-family: monospace;
+      background: rgba(0,212,255,0.1);
+      color: var(--arc);
+      padding: 1px 5px;
+      border-radius: 2px;
+      font-size: 0.78rem;
+    }
+
+    .download-btn {
+      margin-top: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: transparent;
+      border: 1px solid rgba(0,212,255,0.35);
+      color: var(--arc);
+      font-family: 'Orbitron', monospace;
+      font-size: 0.55rem;
+      letter-spacing: 0.12em;
+      padding: 7px 13px;
+      border-radius: 2px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s;
+      width: fit-content;
+    }
+    .download-btn:hover { border-color: var(--arc); box-shadow: 0 0 10px var(--arc-glow); background: rgba(0,212,255,0.06); }
+    .download-btn.gold { color: var(--gold); border-color: rgba(255,204,68,0.4); }
+    .download-btn.gold:hover { border-color: var(--gold); box-shadow: 0 0 10px rgba(255,204,68,0.3); background: rgba(255,204,68,0.05); }
+
+    .step-note {
+      font-size: 0.72rem;
+      color: rgba(90,138,170,0.7);
+      font-style: italic;
+    }
+
+    /* ── NGROK BANNER ── */
+    #ngrok-banner {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 24px;
+      background: rgba(0,212,255,0.05);
+      border-bottom: 1px solid rgba(0,212,255,0.12);
+      font-family: 'Orbitron', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.1em;
+      color: var(--text-dim);
+      flex-shrink: 0;
+    }
+    #ngrok-banner label { color: var(--arc); white-space: nowrap; }
+
+    #ngrokInput {
+      flex: 1;
+      background: rgba(0,30,50,0.7);
+      border: 1px solid rgba(0,212,255,0.2);
+      border-radius: 2px;
+      color: var(--text);
+      font-family: 'Orbitron', monospace;
+      font-size: 0.6rem;
+      padding: 5px 10px;
+      outline: none;
+      letter-spacing: 0.05em;
+      transition: border-color 0.2s;
+    }
+    #ngrokInput:focus { border-color: var(--arc); }
+    #ngrokInput::placeholder { color: var(--text-dim); }
+
+    #ngrokSave {
+      background: transparent;
+      border: 1px solid rgba(0,212,255,0.3);
+      color: var(--arc);
+      font-family: 'Orbitron', monospace;
+      font-size: 0.55rem;
+      letter-spacing: 0.1em;
+      padding: 5px 12px;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    #ngrokSave:hover { box-shadow: 0 0 8px var(--arc-glow); }
+
+    #pcStatus { white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+    #pcDot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-dim); }
+    #pcDot.online  { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    #pcDot.offline { background: var(--red);   box-shadow: 0 0 6px var(--red); }
+
+    /* ── CHAT ── */
     #chat {
       flex: 1;
       overflow-y: auto;
@@ -143,8 +316,8 @@
       flex-direction: column;
       gap: 12px;
       scroll-behavior: smooth;
+      min-height: 0;
     }
-
     #chat::-webkit-scrollbar { width: 4px; }
     #chat::-webkit-scrollbar-track { background: transparent; }
     #chat::-webkit-scrollbar-thumb { background: var(--arc-dim); border-radius: 2px; }
@@ -158,7 +331,6 @@
       position: relative;
       animation: fadeSlide 0.3s ease;
     }
-
     @keyframes fadeSlide {
       from { opacity: 0; transform: translateY(8px); }
       to   { opacity: 1; transform: translateY(0); }
@@ -171,7 +343,6 @@
       align-self: flex-end;
       color: var(--text);
     }
-
     .user::before {
       content: 'STARK';
       display: block;
@@ -189,7 +360,6 @@
       align-self: flex-start;
       color: var(--text);
     }
-
     .jarvis::before {
       content: 'JARVIS';
       display: block;
@@ -200,51 +370,31 @@
       margin-bottom: 6px;
     }
 
-    .typing {
-      display: flex;
-      gap: 5px;
-      align-items: center;
-      padding: 16px;
-    }
-
-    .typing span {
-      width: 6px; height: 6px;
-      background: var(--arc);
-      border-radius: 50%;
-      animation: typingBounce 1.2s infinite;
-    }
+    .typing { display: flex; gap: 5px; align-items: center; padding: 16px; }
+    .typing span { width: 6px; height: 6px; background: var(--arc); border-radius: 50%; animation: typingBounce 1.2s infinite; }
     .typing span:nth-child(2) { animation-delay: 0.2s; }
     .typing span:nth-child(3) { animation-delay: 0.4s; }
-
     @keyframes typingBounce {
       0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
       30% { transform: translateY(-6px); opacity: 1; }
     }
 
+    /* ── INPUT ── */
     #input-area {
       position: relative;
       z-index: 10;
       padding: 16px 24px;
       background: linear-gradient(0deg, rgba(0,10,20,0.95) 0%, transparent 100%);
       border-top: 1px solid rgba(0,212,255,0.15);
+      flex-shrink: 0;
     }
 
-    .input-row {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-    }
-
-    .input-wrapper {
-      flex: 1;
-      position: relative;
-    }
-
+    .input-row { display: flex; gap: 10px; align-items: center; }
+    .input-wrapper { flex: 1; position: relative; }
     .input-wrapper::before {
       content: '›';
       position: absolute;
-      left: 14px;
-      top: 50%;
+      left: 14px; top: 50%;
       transform: translateY(-50%);
       color: var(--arc);
       font-size: 1.2rem;
@@ -264,12 +414,7 @@
       transition: all 0.2s;
       letter-spacing: 0.05em;
     }
-
-    #textInput:focus {
-      border-color: var(--arc);
-      box-shadow: 0 0 15px var(--arc-glow), inset 0 0 10px rgba(0,212,255,0.05);
-    }
-
+    #textInput:focus { border-color: var(--arc); box-shadow: 0 0 15px var(--arc-glow), inset 0 0 10px rgba(0,212,255,0.05); }
     #textInput::placeholder { color: var(--text-dim); }
 
     .btn {
@@ -284,55 +429,27 @@
       align-items: center;
       justify-content: center;
       transition: all 0.2s;
-      position: relative;
-      overflow: hidden;
     }
-
     .btn:hover { border-color: var(--arc); box-shadow: 0 0 12px var(--arc-glow); }
     .btn:active { transform: scale(0.96); }
+    .btn.recording { border-color: var(--red); color: var(--red); animation: recPulse 1s infinite; }
 
-    .btn.recording {
-      border-color: var(--red);
-      color: var(--red);
-      animation: recPulse 1s infinite;
+    #liveBtn {
+      width: auto; padding: 0 14px;
+      font-family: 'Orbitron', monospace;
+      font-size: 0.55rem; letter-spacing: 0.15em;
+      color: var(--text-dim); border-color: rgba(0,212,255,0.15);
     }
+    #liveBtn.live-on { color: var(--red); border-color: var(--red); animation: recPulse 1.5s infinite; }
 
     @keyframes recPulse {
       0%, 100% { box-shadow: 0 0 8px rgba(255,68,85,0.3); }
       50% { box-shadow: 0 0 20px rgba(255,68,85,0.7); }
     }
-
-    #liveBtn {
-      width: auto;
-      padding: 0 14px;
-      font-family: 'Orbitron', monospace;
-      font-size: 0.55rem;
-      letter-spacing: 0.15em;
-      color: var(--text-dim);
-      border-color: rgba(0,212,255,0.15);
-    }
-
-    #liveBtn.live-on {
-      color: var(--red);
-      border-color: var(--red);
-      animation: recPulse 1.5s infinite;
-    }
-
     @keyframes pulse {
       0%, 100% { opacity: 1; box-shadow: 0 0 6px var(--arc); }
       50% { opacity: 0.5; box-shadow: 0 0 2px var(--arc); }
     }
-
-    .corner {
-      position: fixed;
-      width: 60px; height: 60px;
-      pointer-events: none;
-      z-index: 1;
-    }
-    .corner.tl { top: 0; left: 0; border-top: 2px solid var(--arc); border-left: 2px solid var(--arc); }
-    .corner.tr { top: 0; right: 0; border-top: 2px solid var(--arc); border-right: 2px solid var(--arc); }
-    .corner.bl { bottom: 0; left: 0; border-bottom: 2px solid var(--arc); border-left: 2px solid var(--arc); }
-    .corner.br { bottom: 0; right: 0; border-bottom: 2px solid var(--arc); border-right: 2px solid var(--arc); }
   </style>
 </head>
 <body>
@@ -349,8 +466,8 @@
       <circle cx="100" cy="100" r="60" fill="none" stroke="#00d4ff" stroke-width="1"/>
       <circle cx="100" cy="100" r="40" fill="none" stroke="#00d4ff" stroke-width="1"/>
       <circle cx="100" cy="100" r="18" fill="none" stroke="#00d4ff" stroke-width="2"/>
-      <circle cx="100" cy="100" r="8" fill="#00d4ff"/>
-      <line x1="100" y1="5"  x2="100" y2="82" stroke="#00d4ff" stroke-width="0.5"/>
+      <circle cx="100" cy="100" r="8"  fill="#00d4ff"/>
+      <line x1="100" y1="5"   x2="100" y2="82"  stroke="#00d4ff" stroke-width="0.5"/>
       <line x1="100" y1="118" x2="100" y2="195" stroke="#00d4ff" stroke-width="0.5"/>
       <line x1="5"   y1="100" x2="82"  y2="100" stroke="#00d4ff" stroke-width="0.5"/>
       <line x1="118" y1="100" x2="195" y2="100" stroke="#00d4ff" stroke-width="0.5"/>
@@ -361,17 +478,93 @@
     </svg>
   </div>
 
+  <!-- HEADER -->
   <header>
     <div class="logo">JARVIS</div>
-    <div class="status-bar">
-      <div class="status-dot"></div>
-      <span>SISTEMA EN LÍNEA</span>
-      <button id="clearBtn">LIMPIAR SESIÓN</button>
+    <div class="header-right">
+      <div class="status-bar">
+        <div class="status-dot"></div>
+        <span>SISTEMA EN LÍNEA</span>
+      </div>
+      <button class="hdr-btn" id="setupToggle">⚙ INSTALAR EN PC</button>
+      <button class="hdr-btn" id="clearBtn">LIMPIAR SESIÓN</button>
     </div>
   </header>
 
+  <!-- SETUP PANEL -->
+  <div id="setup-panel">
+    <div class="setup-inner">
+      <div class="setup-title">⚙ INSTALACIÓN — HABILITAR CONTROL DE PC</div>
+
+      <div class="setup-step">
+        <div class="step-header">
+          <span class="step-num">01</span>
+          <span class="step-name">INSTALAR PYTHON</span>
+        </div>
+        <p class="step-desc">
+          Necesitás Python 3.10 o superior. Durante la instalación marcá la opción
+          <code>Add Python to PATH</code> o no va a funcionar.
+        </p>
+        <a class="download-btn" href="https://www.python.org/downloads/" target="_blank">↗ DESCARGAR PYTHON</a>
+      </div>
+
+      <div class="setup-step">
+        <div class="step-header">
+          <span class="step-num">02</span>
+          <span class="step-name">INSTALAR NGROK</span>
+        </div>
+        <p class="step-desc">
+          ngrok crea un túnel para que esta web llegue a tu PC.
+          Descargalo, descomprimilo y dejá el <code>ngrok.exe</code> en la misma carpeta que <code>main.py</code>.
+        </p>
+        <a class="download-btn" href="https://ngrok.com/download" target="_blank">↗ DESCARGAR NGROK</a>
+        <p class="step-note">Registrate gratis en ngrok.com y corré <code>ngrok config add-authtoken TU_TOKEN</code> una sola vez.</p>
+      </div>
+
+      <div class="setup-step">
+        <div class="step-header">
+          <span class="step-num">03</span>
+          <span class="step-name">DESCARGAR BACKEND</span>
+        </div>
+        <p class="step-desc">
+          Descargá <code>main.py</code> y abrilo con un editor de texto. Reemplazá
+          <code>AQUI_LA_API_DE_GEMINI</code> con tu API key gratuita de
+          <code>aistudio.google.com/app/apikey</code>.
+        </p>
+        <a class="download-btn" href="/main.py" download>↓ DESCARGAR MAIN.PY</a>
+      </div>
+
+      <div class="setup-step">
+        <div class="step-header">
+          <span class="step-num">04</span>
+          <span class="step-name">ARRANCAR CON UN CLICK</span>
+        </div>
+        <p class="step-desc">
+          Descargá el iniciador y guardalo en la <strong>misma carpeta</strong> que <code>main.py</code>.
+          Doble click → espera que se abran las ventanas → copiá la URL de ngrok → pegala abajo y hacé click en CONECTAR.
+        </p>
+        <a class="download-btn gold" href="/jarvis.bat" download>↓ DESCARGAR JARVIS.BAT</a>
+        <p class="step-note">Solo Windows. En Mac/Linux corrés <code>python main.py</code> y <code>ngrok http 8000</code> manualmente.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- NGROK BANNER -->
+  <div id="ngrok-banner">
+    <label>PC BACKEND →</label>
+    <input id="ngrokInput" placeholder="https://xxxx-xx-xx-xx-xx.ngrok-free.app" autocomplete="off" spellcheck="false">
+    <button id="ngrokSave">CONECTAR</button>
+    <span id="pcStatus">
+      <span id="pcDot"></span>
+      <span id="pcLabel">SIN CONECTAR</span>
+    </span>
+  </div>
+
+  <!-- CHAT -->
   <div id="chat"></div>
 
+  <!-- INPUT -->
   <div id="input-area">
     <div class="input-row">
       <div class="input-wrapper">
@@ -383,18 +576,39 @@
   </div>
 
   <script>
-    const chat      = document.getElementById('chat');
-    const textInput = document.getElementById('textInput');
-    const micBtn    = document.getElementById('micBtn');
-    const liveBtn   = document.getElementById('liveBtn');
-    const clearBtn  = document.getElementById('clearBtn');
+    const chat        = document.getElementById('chat');
+    const textInput   = document.getElementById('textInput');
+    const micBtn      = document.getElementById('micBtn');
+    const liveBtn     = document.getElementById('liveBtn');
+    const clearBtn    = document.getElementById('clearBtn');
+    const ngrokInput  = document.getElementById('ngrokInput');
+    const ngrokSave   = document.getElementById('ngrokSave');
+    const pcDot       = document.getElementById('pcDot');
+    const pcLabel     = document.getElementById('pcLabel');
+    const setupPanel  = document.getElementById('setup-panel');
+    const setupToggle = document.getElementById('setupToggle');
 
-    // URL relativa — funciona siempre sin importar el host
-    const API = '';
-
+    let BACKEND_URL = localStorage.getItem('jarvis_backend') || '';
+    let pcOnline    = false;
     let recognition;
-    let isLive = false;
+    let isLive      = false;
 
+    if (BACKEND_URL) ngrokInput.value = BACKEND_URL;
+
+    // ── Setup toggle ──
+    setupToggle.onclick = () => {
+      const open = setupPanel.classList.toggle('open');
+      setupToggle.textContent = open ? '✕ CERRAR' : '⚙ INSTALAR EN PC';
+    };
+
+    // ── PC status ──
+    function setPcStatus(online) {
+      pcOnline = online;
+      pcDot.className     = online ? 'online' : 'offline';
+      pcLabel.textContent = online ? 'PC CONECTADA' : 'PC OFFLINE';
+    }
+
+    // ── Chat helpers ──
     function addMessage(text, who) {
       const div = document.createElement('div');
       div.className = `message ${who}`;
@@ -418,46 +632,88 @@
       if (t) t.remove();
     }
 
+    // ── Ping ──
+    async function pingBackend(url) {
+      if (!url) { setPcStatus(false); return false; }
+      try {
+        const res = await fetch(`${url}/ping`, { signal: AbortSignal.timeout(4000) });
+        setPcStatus(res.ok);
+        return res.ok;
+      } catch {
+        setPcStatus(false);
+        return false;
+      }
+    }
+
+    // ── Guardar URL ──
+    ngrokSave.onclick = async () => {
+      let url = ngrokInput.value.trim().replace(/\/$/, '');
+      if (!url) return;
+      BACKEND_URL = url;
+      localStorage.setItem('jarvis_backend', url);
+      ngrokSave.textContent = '...';
+      const ok = await pingBackend(url);
+      ngrokSave.textContent = 'CONECTAR';
+      if (ok) {
+        addMessage('✅ PC conectada. Control de escritorio habilitado.', 'jarvis');
+        setupPanel.classList.remove('open');
+        setupToggle.textContent = '⚙ INSTALAR EN PC';
+      } else {
+        addMessage(`⚠️ No pude alcanzar ${url}. ¿Corriste jarvis.bat? ¿Está ngrok activo?`, 'jarvis');
+      }
+    };
+
+    if (BACKEND_URL) pingBackend(BACKEND_URL);
+
+    // ── Enviar ──
     async function sendToJarvis(text) {
       if (!text.trim()) return;
       addMessage(text, 'user');
       showTyping();
 
+      if (pcOnline && BACKEND_URL) {
+        try {
+          const res  = await fetch(`${BACKEND_URL}/command`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text })
+          });
+          const data = await res.json();
+          removeTyping();
+          addMessage(data.response, 'jarvis');
+          return;
+        } catch { setPcStatus(false); }
+      }
+
       try {
-        const res = await fetch(`${API}/command`, {
+        const res  = await fetch('/api/chat', {
           method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({text})
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
         });
         const data = await res.json();
         removeTyping();
         addMessage(data.response, 'jarvis');
-      } catch (e) {
+      } catch {
         removeTyping();
-        addMessage('Error de conexión. ¿Está corriendo main.py?', 'jarvis');
-        console.error(e);
+        addMessage('Error de conexión con el servidor.', 'jarvis');
       }
     }
 
+    // ── Mic ──
     micBtn.onclick = () => {
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SR) { alert("Tu navegador no soporta reconocimiento de voz"); return; }
-
       micBtn.classList.add('recording');
       const r = new SR();
-      r.lang = 'es-ES';
-      r.interimResults = false;
-      r.maxAlternatives = 1;
-
-      r.onresult = e => {
-        sendToJarvis(e.results[0][0].transcript);
-        micBtn.classList.remove('recording');
-      };
+      r.lang = 'es-ES'; r.interimResults = false; r.maxAlternatives = 1;
+      r.onresult = e => { sendToJarvis(e.results[0][0].transcript); micBtn.classList.remove('recording'); };
       r.onerror = () => micBtn.classList.remove('recording');
       r.onend   = () => micBtn.classList.remove('recording');
       r.start();
     };
 
+    // ── Live ──
     liveBtn.onclick = () => {
       isLive = !isLive;
       liveBtn.textContent = isLive ? '● LIVE' : 'LIVE';
@@ -470,9 +726,7 @@
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SR) return;
       recognition = new SR();
-      recognition.lang = 'es-ES';
-      recognition.continuous = true;
-      recognition.interimResults = true;
+      recognition.lang = 'es-ES'; recognition.continuous = true; recognition.interimResults = true;
       recognition.onresult = e => {
         const last = e.results[e.results.length - 1];
         if (last.isFinal) sendToJarvis(last[0].transcript);
@@ -482,24 +736,25 @@
       recognition.start();
     }
 
+    // ── Clear ──
     clearBtn.onclick = async () => {
-      await fetch(`${API}/conversation`, { method: 'DELETE' });
+      if (pcOnline && BACKEND_URL) await fetch(`${BACKEND_URL}/conversation`, { method: 'DELETE' }).catch(() => {});
+      await fetch('/api/clear', { method: 'DELETE' }).catch(() => {});
       chat.innerHTML = '';
       addMessage('Sesión reiniciada. ¿En qué te puedo ayudar?', 'jarvis');
     };
 
+    // ── Enter ──
     textInput.addEventListener('keypress', e => {
-      if (e.key === 'Enter') {
-        sendToJarvis(textInput.value);
-        textInput.value = '';
-      }
+      if (e.key === 'Enter') { sendToJarvis(textInput.value); textInput.value = ''; }
     });
 
+    // ── PWA ──
     window.addEventListener('load', () => {
       if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
     });
 
-    addMessage('Sistemas en línea. ¿En qué le puedo asistir hoy?', 'jarvis');
+    addMessage('Sistemas en línea. Para controlar tu PC, hacé click en ⚙ INSTALAR EN PC arriba y seguí los pasos.', 'jarvis');
   </script>
 </body>
 </html>
