@@ -24,11 +24,15 @@ app.add_middleware(
 engine = pyttsx3.init()
 
 # ── GEMINI CONFIG ──────────────────────────────────────────────────────────────
-# 1. Limpiamos la API KEY de espacios vacíos con .strip()
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AQUI_LA_API_DE_GEMINI").strip()
+# 1. Limpieza ABSOLUTA de la clave (quita saltos de linea invisibles, espacios y comillas de Windows)
+raw_key = os.getenv("GEMINI_API_KEY", "")
+GEMINI_API_KEY = raw_key.replace("\r", "").replace("\n", "").replace('"', "").replace("'", "").strip()
 
-# 2. CORRECCIÓN: Cambiamos gemini-3-flash por gemini-1.5-flash
-GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+# 2. Usamos el nombre real oficial (gemini-1.5-flash)
+MODEL_NAME = "gemini-1.5-flash"
+
+# 3. URL final limpia
+GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={GEMINI_API_KEY}"
 
 SYSTEM_PROMPT = """Eres Jarvis, un asistente personal inteligente que corre en la PC del usuario.
 Tu trabajo es entender lo que el usuario quiere en lenguaje natural y responder de forma útil y concisa.
@@ -159,7 +163,7 @@ def execute_action(action: str, search_query: str = "") -> None:
         subprocess.Popen(["start", f"https://www.google.com/search?q={q}"], shell=True)
     elif action == "SEARCH_YOUTUBE":
         q = search_query.replace(" ", "+")
-        # 3. CORRECCIÓN: Arreglada la línea de código rota
+        # Corrección: Línea arreglada para abrir YouTube correctamente
         subprocess.Popen(["start", f"https://www.youtube.com/results?search_query={q}"], shell=True)
 
 # ── ENDPOINTS ─────────────────────────────────────────────────────────────────
@@ -224,10 +228,9 @@ if __name__ == "__main__":
     print("🤖  JARVIS AI  —  Powered by Gemini")
     print("=" * 55)
     print()
-    if GEMINI_API_KEY == "AQUI_LA_API_DE_GEMINI":
-        print("⚠️  Configurá tu GEMINI_API_KEY:")
-        print("   set GEMINI_API_KEY=tu_key_aqui   (Windows CMD)")
-        print("   $env:GEMINI_API_KEY='tu_key'     (PowerShell)")
+    if not GEMINI_API_KEY:
+        print("⚠️  ATENCIÓN: No se detectó la API KEY.")
+        print("   Asegurate de iniciar usando el archivo .bat")
         print()
     print("🚀  Backend local: http://127.0.0.1:8000")
     print()
@@ -235,7 +238,7 @@ if __name__ == "__main__":
     print("   1. Instalá ngrok: https://ngrok.com/download")
     print("   2. En otra terminal: ngrok http 8000")
     print("   3. Copiá la URL https://xxxx.ngrok-free.app")
-    print("   4. Pegala en el banner de la web de Vercel")
+    print("   4. Pegala en el banner de la web")
     print()
     print("   Presioná Ctrl+C para detener")
     print()
