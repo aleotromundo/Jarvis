@@ -25,7 +25,7 @@ engine = pyttsx3.init()
 
 # ── GEMINI CONFIG ──────────────────────────────────────────────────────────────
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "AQUI_LA_API_DE_GEMINI")
-GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
+GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key={GEMINI_API_KEY}"
 
 SYSTEM_PROMPT = """Eres Jarvis, un asistente personal inteligente que corre en la PC del usuario.
 Tu trabajo es entender lo que el usuario quiere en lenguaje natural y responder de forma útil y concisa.
