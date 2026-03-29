@@ -77,7 +77,6 @@
       opacity: 0.07;
     }
 
-    /* ── HEADER ── */
     header {
       position: relative;
       z-index: 10;
@@ -149,7 +148,6 @@
     #setupToggle { color: var(--gold); border-color: rgba(255,204,68,0.4); }
     #setupToggle:hover { border-color: var(--gold); box-shadow: 0 0 8px rgba(255,204,68,0.3); color: var(--gold); }
 
-    /* ── SETUP PANEL ── */
     #setup-panel {
       position: relative;
       z-index: 10;
@@ -251,7 +249,6 @@
       font-style: italic;
     }
 
-    /* ── NGROK BANNER ── */
     #ngrok-banner {
       position: relative;
       z-index: 10;
@@ -305,7 +302,6 @@
     #pcDot.online  { background: var(--green); box-shadow: 0 0 6px var(--green); }
     #pcDot.offline { background: var(--red);   box-shadow: 0 0 6px var(--red); }
 
-    /* ── CHAT ── */
     #chat {
       flex: 1;
       overflow-y: auto;
@@ -379,7 +375,6 @@
       30% { transform: translateY(-6px); opacity: 1; }
     }
 
-    /* ── INPUT ── */
     #input-area {
       position: relative;
       z-index: 10;
@@ -478,7 +473,6 @@
     </svg>
   </div>
 
-  <!-- HEADER -->
   <header>
     <div class="logo">JARVIS</div>
     <div class="header-right">
@@ -491,7 +485,6 @@
     </div>
   </header>
 
-  <!-- SETUP PANEL -->
   <div id="setup-panel">
     <div class="setup-inner">
       <div class="setup-title">⚙ INSTALACIÓN — HABILITAR CONTROL DE PC</div>
@@ -515,10 +508,10 @@
         </div>
         <p class="step-desc">
           ngrok crea un túnel para que esta web llegue a tu PC.
-          Descargalo, descomprimilo y dejá el <code>ngrok.exe</code> en la misma carpeta que <code>main.py</code>.
+          Descargalo y dejá el <code>ngrok.exe</code> en la misma carpeta que <code>main.py</code>.
+          Creá una cuenta gratis y corré <code>ngrok config add-authtoken TU_TOKEN</code> una sola vez.
         </p>
         <a class="download-btn" href="https://ngrok.com/download" target="_blank">↗ DESCARGAR NGROK</a>
-        <p class="step-note">Registrate gratis en ngrok.com y corré <code>ngrok config add-authtoken TU_TOKEN</code> una sola vez.</p>
       </div>
 
       <div class="setup-step">
@@ -527,8 +520,8 @@
           <span class="step-name">DESCARGAR BACKEND</span>
         </div>
         <p class="step-desc">
-          Descargá <code>main.py</code> y abrilo con un editor de texto. Reemplazá
-          <code>AQUI_LA_API_DE_GEMINI</code> con tu API key gratuita de
+          Descargá <code>main.py</code> y guardalo en una carpeta. La API key de Gemini
+          te la va a pedir el iniciador automáticamente — conseguila gratis en
           <code>aistudio.google.com/app/apikey</code>.
         </p>
         <a class="download-btn" href="/main.py" download>↓ DESCARGAR MAIN.PY</a>
@@ -540,8 +533,8 @@
           <span class="step-name">ARRANCAR CON UN CLICK</span>
         </div>
         <p class="step-desc">
-          Descargá el iniciador y guardalo en la <strong>misma carpeta</strong> que <code>main.py</code>.
-          Doble click → espera que se abran las ventanas → copiá la URL de ngrok → pegala abajo y hacé click en CONECTAR.
+          Guardalo en la <strong>misma carpeta</strong> que <code>main.py</code> y <code>ngrok.exe</code>.
+          Doble click → esperá que se abran las ventanas → copiá la URL de ngrok → pegala abajo → CONECTAR.
         </p>
         <a class="download-btn gold" href="/jarvis.bat" download>↓ DESCARGAR JARVIS.BAT</a>
         <p class="step-note">Solo Windows. En Mac/Linux corrés <code>python main.py</code> y <code>ngrok http 8000</code> manualmente.</p>
@@ -550,7 +543,6 @@
     </div>
   </div>
 
-  <!-- NGROK BANNER -->
   <div id="ngrok-banner">
     <label>PC BACKEND →</label>
     <input id="ngrokInput" placeholder="https://xxxx-xx-xx-xx-xx.ngrok-free.app" autocomplete="off" spellcheck="false">
@@ -561,10 +553,8 @@
     </span>
   </div>
 
-  <!-- CHAT -->
   <div id="chat"></div>
 
-  <!-- INPUT -->
   <div id="input-area">
     <div class="input-row">
       <div class="input-wrapper">
@@ -587,6 +577,11 @@
     const pcLabel     = document.getElementById('pcLabel');
     const setupPanel  = document.getElementById('setup-panel');
     const setupToggle = document.getElementById('setupToggle');
+
+    // Header que salta la pantalla de advertencia de ngrok
+    const NGROK_HEADERS = {
+      'ngrok-skip-browser-warning': '1'
+    };
 
     let BACKEND_URL = localStorage.getItem('jarvis_backend') || '';
     let pcOnline    = false;
@@ -632,11 +627,14 @@
       if (t) t.remove();
     }
 
-    // ── Ping ──
+    // ── Ping — con header ngrok ──
     async function pingBackend(url) {
       if (!url) { setPcStatus(false); return false; }
       try {
-        const res = await fetch(`${url}/ping`, { signal: AbortSignal.timeout(4000) });
+        const res = await fetch(`${url}/ping`, {
+          signal: AbortSignal.timeout(4000),
+          headers: NGROK_HEADERS
+        });
         setPcStatus(res.ok);
         return res.ok;
       } catch {
@@ -648,6 +646,8 @@
     // ── Guardar URL ──
     ngrokSave.onclick = async () => {
       let url = ngrokInput.value.trim().replace(/\/$/, '');
+      // Limpiar si pegan la línea completa con " -> ..."
+      url = url.split(' ')[0];
       if (!url) return;
       BACKEND_URL = url;
       localStorage.setItem('jarvis_backend', url);
@@ -675,7 +675,10 @@
         try {
           const res  = await fetch(`${BACKEND_URL}/command`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              ...NGROK_HEADERS
+            },
             body: JSON.stringify({ text })
           });
           const data = await res.json();
@@ -685,6 +688,7 @@
         } catch { setPcStatus(false); }
       }
 
+      // Fallback cloud
       try {
         const res  = await fetch('/api/chat', {
           method: 'POST',
@@ -738,7 +742,12 @@
 
     // ── Clear ──
     clearBtn.onclick = async () => {
-      if (pcOnline && BACKEND_URL) await fetch(`${BACKEND_URL}/conversation`, { method: 'DELETE' }).catch(() => {});
+      if (pcOnline && BACKEND_URL) {
+        await fetch(`${BACKEND_URL}/conversation`, {
+          method: 'DELETE',
+          headers: NGROK_HEADERS
+        }).catch(() => {});
+      }
       await fetch('/api/clear', { method: 'DELETE' }).catch(() => {});
       chat.innerHTML = '';
       addMessage('Sesión reiniciada. ¿En qué te puedo ayudar?', 'jarvis');
