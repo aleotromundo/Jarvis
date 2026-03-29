@@ -1,0 +1,17 @@
+{
+  "name": "Jarvis - Asistente de Voz",
+  "short_name": "Jarvis",
+  "description": "Tu asistente personal por voz para Windows",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#00ff9d",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "permissions": ["microphone"]
+}

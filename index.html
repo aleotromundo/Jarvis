@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JARVIS</title>
+  <link rel="manifest" href="manifest.json">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --arc: #00d4ff;
+      --arc-dim: #0088aa;
+      --arc-glow: rgba(0,212,255,0.35);
+      --arc-faint: rgba(0,212,255,0.08);
+      --iron: #1a2a3a;
+      --iron-dark: #0a1520;
+      --iron-mid: #0f1e2e;
+      --text: #c8f0ff;
+      --text-dim: #5a8aaa;
+      --red: #ff4455;
+      --gold: #ffcc44;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Rajdhani', sans-serif;
+      background: var(--iron-dark);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,212,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,255,0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse at center, transparent 40%, rgba(0,5,15,0.85) 100%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    header {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 24px;
+      border-bottom: 1px solid rgba(0,212,255,0.2);
+      background: linear-gradient(180deg, rgba(0,30,50,0.9) 0%, transparent 100%);
+    }
+
+    .logo {
+      font-family: 'Orbitron', monospace;
+      font-weight: 900;
+      font-size: 1.6rem;
+      letter-spacing: 0.3em;
+      color: var(--arc);
+      text-shadow: 0 0 20px var(--arc-glow), 0 0 40px var(--arc-glow);
+    }
+
+    .logo::after {
+      content: 'JUST A RATHER VERY INTELLIGENT SYSTEM';
+      display: block;
+      font-size: 0.3rem;
+      letter-spacing: 0.25em;
+      color: var(--text-dim);
+      margin-top: 2px;
+      font-weight: 400;
+    }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-size: 0.7rem;
+      font-family: 'Orbitron', monospace;
+      color: var(--text-dim);
+      letter-spacing: 0.1em;
+    }
+
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--arc);
+      box-shadow: 0 0 8px var(--arc);
+      animation: pulse 2s infinite;
+    }
+
+    #clearBtn {
+      background: transparent;
+      border: 1px solid rgba(0,212,255,0.3);
+      color: var(--text-dim);
+      font-family: 'Orbitron', monospace;
+      font-size: 0.55rem;
+      letter-spacing: 0.1em;
+      padding: 5px 10px;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: all 0.2s;
+    }
+    #clearBtn:hover {
+      border-color: var(--arc);
+      color: var(--arc);
+      box-shadow: 0 0 8px var(--arc-glow);
+    }
+
+    .arc-reactor {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px;
+      height: 600px;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.07;
+    }
+
+    #chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 24px;
+      position: relative;
+      z-index: 5;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      scroll-behavior: smooth;
+    }
+
+    #chat::-webkit-scrollbar { width: 4px; }
+    #chat::-webkit-scrollbar-track { background: transparent; }
+    #chat::-webkit-scrollbar-thumb { background: var(--arc-dim); border-radius: 2px; }
+
+    .message {
+      max-width: 75%;
+      padding: 12px 16px;
+      border-radius: 2px;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      position: relative;
+      animation: fadeSlide 0.3s ease;
+    }
+
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .user {
+      background: rgba(0,212,255,0.1);
+      border: 1px solid rgba(0,212,255,0.3);
+      border-right: 3px solid var(--arc);
+      align-self: flex-end;
+      color: var(--text);
+    }
+
+    .user::before {
+      content: 'STARK';
+      display: block;
+      font-family: 'Orbitron', monospace;
+      font-size: 0.55rem;
+      color: var(--arc);
+      letter-spacing: 0.2em;
+      margin-bottom: 6px;
+    }
+
+    .jarvis {
+      background: rgba(10,25,40,0.8);
+      border: 1px solid rgba(0,212,255,0.15);
+      border-left: 3px solid var(--arc);
+      align-self: flex-start;
+      color: var(--text);
+    }
+
+    .jarvis::before {
+      content: 'JARVIS';
+      display: block;
+      font-family: 'Orbitron', monospace;
+      font-size: 0.55rem;
+      color: var(--arc);
+      letter-spacing: 0.2em;
+      margin-bottom: 6px;
+    }
+
+    .typing {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+      padding: 16px;
+    }
+
+    .typing span {
+      width: 6px; height: 6px;
+      background: var(--arc);
+      border-radius: 50%;
+      animation: typingBounce 1.2s infinite;
+    }
+    .typing span:nth-child(2) { animation-delay: 0.2s; }
+    .typing span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typingBounce {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+      30% { transform: translateY(-6px); opacity: 1; }
+    }
+
+    #input-area {
+      position: relative;
+      z-index: 10;
+      padding: 16px 24px;
+      background: linear-gradient(0deg, rgba(0,10,20,0.95) 0%, transparent 100%);
+      border-top: 1px solid rgba(0,212,255,0.15);
+    }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .input-wrapper {
+      flex: 1;
+      position: relative;
+    }
+
+    .input-wrapper::before {
+      content: '›';
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--arc);
+      font-size: 1.2rem;
+      pointer-events: none;
+    }
+
+    #textInput {
+      width: 100%;
+      padding: 13px 16px 13px 30px;
+      background: rgba(0,30,50,0.7);
+      border: 1px solid rgba(0,212,255,0.25);
+      border-radius: 2px;
+      color: var(--text);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 1rem;
+      outline: none;
+      transition: all 0.2s;
+      letter-spacing: 0.05em;
+    }
+
+    #textInput:focus {
+      border-color: var(--arc);
+      box-shadow: 0 0 15px var(--arc-glow), inset 0 0 10px rgba(0,212,255,0.05);
+    }
+
+    #textInput::placeholder { color: var(--text-dim); }
+
+    .btn {
+      width: 46px; height: 46px;
+      background: transparent;
+      border: 1px solid rgba(0,212,255,0.3);
+      color: var(--arc);
+      border-radius: 2px;
+      cursor: pointer;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn:hover { border-color: var(--arc); box-shadow: 0 0 12px var(--arc-glow); }
+    .btn:active { transform: scale(0.96); }
+
+    .btn.recording {
+      border-color: var(--red);
+      color: var(--red);
+      animation: recPulse 1s infinite;
+    }
+
+    @keyframes recPulse {
+      0%, 100% { box-shadow: 0 0 8px rgba(255,68,85,0.3); }
+      50% { box-shadow: 0 0 20px rgba(255,68,85,0.7); }
+    }
+
+    #liveBtn {
+      width: auto;
+      padding: 0 14px;
+      font-family: 'Orbitron', monospace;
+      font-size: 0.55rem;
+      letter-spacing: 0.15em;
+      color: var(--text-dim);
+      border-color: rgba(0,212,255,0.15);
+    }
+
+    #liveBtn.live-on {
+      color: var(--red);
+      border-color: var(--red);
+      animation: recPulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 6px var(--arc); }
+      50% { opacity: 0.5; box-shadow: 0 0 2px var(--arc); }
+    }
+
+    .corner {
+      position: fixed;
+      width: 60px; height: 60px;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .corner.tl { top: 0; left: 0; border-top: 2px solid var(--arc); border-left: 2px solid var(--arc); }
+    .corner.tr { top: 0; right: 0; border-top: 2px solid var(--arc); border-right: 2px solid var(--arc); }
+    .corner.bl { bottom: 0; left: 0; border-bottom: 2px solid var(--arc); border-left: 2px solid var(--arc); }
+    .corner.br { bottom: 0; right: 0; border-bottom: 2px solid var(--arc); border-right: 2px solid var(--arc); }
+  </style>
+</head>
+<body>
+
+  <div class="corner tl"></div>
+  <div class="corner tr"></div>
+  <div class="corner bl"></div>
+  <div class="corner br"></div>
+
+  <div class="arc-reactor">
+    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="100" cy="100" r="95" fill="none" stroke="#00d4ff" stroke-width="0.5"/>
+      <circle cx="100" cy="100" r="80" fill="none" stroke="#00d4ff" stroke-width="0.5"/>
+      <circle cx="100" cy="100" r="60" fill="none" stroke="#00d4ff" stroke-width="1"/>
+      <circle cx="100" cy="100" r="40" fill="none" stroke="#00d4ff" stroke-width="1"/>
+      <circle cx="100" cy="100" r="18" fill="none" stroke="#00d4ff" stroke-width="2"/>
+      <circle cx="100" cy="100" r="8" fill="#00d4ff"/>
+      <line x1="100" y1="5"  x2="100" y2="82" stroke="#00d4ff" stroke-width="0.5"/>
+      <line x1="100" y1="118" x2="100" y2="195" stroke="#00d4ff" stroke-width="0.5"/>
+      <line x1="5"   y1="100" x2="82"  y2="100" stroke="#00d4ff" stroke-width="0.5"/>
+      <line x1="118" y1="100" x2="195" y2="100" stroke="#00d4ff" stroke-width="0.5"/>
+      <line x1="33"  y1="33"  x2="86"  y2="86"  stroke="#00d4ff" stroke-width="0.5"/>
+      <line x1="114" y1="114" x2="167" y2="167" stroke="#00d4ff" stroke-width="0.5"/>
+      <line x1="167" y1="33"  x2="114" y2="86"  stroke="#00d4ff" stroke-width="0.5"/>
+      <line x1="86"  y1="114" x2="33"  y2="167" stroke="#00d4ff" stroke-width="0.5"/>
+    </svg>
+  </div>
+
+  <header>
+    <div class="logo">JARVIS</div>
+    <div class="status-bar">
+      <div class="status-dot"></div>
+      <span>SISTEMA EN LÍNEA</span>
+      <button id="clearBtn">LIMPIAR SESIÓN</button>
+    </div>
+  </header>
+
+  <div id="chat"></div>
+
+  <div id="input-area">
+    <div class="input-row">
+      <div class="input-wrapper">
+        <input id="textInput" placeholder="Ingresá un comando o pregunta..." autocomplete="off">
+      </div>
+      <button class="btn" id="micBtn" title="Micrófono">🎤</button>
+      <button class="btn" id="liveBtn">LIVE</button>
+    </div>
+  </div>
+
+  <script>
+    const chat      = document.getElementById('chat');
+    const textInput = document.getElementById('textInput');
+    const micBtn    = document.getElementById('micBtn');
+    const liveBtn   = document.getElementById('liveBtn');
+    const clearBtn  = document.getElementById('clearBtn');
+
+    // URL relativa — funciona siempre sin importar el host
+    const API = '';
+
+    let recognition;
+    let isLive = false;
+
+    function addMessage(text, who) {
+      const div = document.createElement('div');
+      div.className = `message ${who}`;
+      div.textContent = text;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+      return div;
+    }
+
+    function showTyping() {
+      const div = document.createElement('div');
+      div.className = 'message jarvis typing';
+      div.id = 'typing-indicator';
+      div.innerHTML = '<span></span><span></span><span></span>';
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function removeTyping() {
+      const t = document.getElementById('typing-indicator');
+      if (t) t.remove();
+    }
+
+    async function sendToJarvis(text) {
+      if (!text.trim()) return;
+      addMessage(text, 'user');
+      showTyping();
+
+      try {
+        const res = await fetch(`${API}/command`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({text})
+        });
+        const data = await res.json();
+        removeTyping();
+        addMessage(data.response, 'jarvis');
+      } catch (e) {
+        removeTyping();
+        addMessage('Error de conexión. ¿Está corriendo main.py?', 'jarvis');
+        console.error(e);
+      }
+    }
+
+    micBtn.onclick = () => {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) { alert("Tu navegador no soporta reconocimiento de voz"); return; }
+
+      micBtn.classList.add('recording');
+      const r = new SR();
+      r.lang = 'es-ES';
+      r.interimResults = false;
+      r.maxAlternatives = 1;
+
+      r.onresult = e => {
+        sendToJarvis(e.results[0][0].transcript);
+        micBtn.classList.remove('recording');
+      };
+      r.onerror = () => micBtn.classList.remove('recording');
+      r.onend   = () => micBtn.classList.remove('recording');
+      r.start();
+    };
+
+    liveBtn.onclick = () => {
+      isLive = !isLive;
+      liveBtn.textContent = isLive ? '● LIVE' : 'LIVE';
+      liveBtn.classList.toggle('live-on', isLive);
+      if (isLive) startLive();
+      else if (recognition) recognition.stop();
+    };
+
+    function startLive() {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) return;
+      recognition = new SR();
+      recognition.lang = 'es-ES';
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.onresult = e => {
+        const last = e.results[e.results.length - 1];
+        if (last.isFinal) sendToJarvis(last[0].transcript);
+      };
+      recognition.onerror = () => { if (isLive) startLive(); };
+      recognition.onend   = () => { if (isLive) startLive(); };
+      recognition.start();
+    }
+
+    clearBtn.onclick = async () => {
+      await fetch(`${API}/conversation`, { method: 'DELETE' });
+      chat.innerHTML = '';
+      addMessage('Sesión reiniciada. ¿En qué te puedo ayudar?', 'jarvis');
+    };
+
+    textInput.addEventListener('keypress', e => {
+      if (e.key === 'Enter') {
+        sendToJarvis(textInput.value);
+        textInput.value = '';
+      }
+    });
+
+    window.addEventListener('load', () => {
+      if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+    });
+
+    addMessage('Sistemas en línea. ¿En qué le puedo asistir hoy?', 'jarvis');
+  </script>
+</body>
+</html>
