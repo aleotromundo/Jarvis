@@ -668,17 +668,22 @@
         }
       }
 
-      // Fallback: Vercel cloud (sin acciones de PC, solo chat IA)
+      // Fallback: Vercel cloud via /api/gemini
       try {
-        const res  = await fetch('/api/chat', {
+        const contents = [{ role: 'user', parts: [{ text }] }];
+        const res  = await fetch('/api/gemini', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text }),
+          body: JSON.stringify({ contents }),
           signal: AbortSignal.timeout(20000)
         });
         const data = await res.json();
         removeTyping();
-        addMessage(data.response, 'jarvis');
+        if (data.success && data.text) {
+          addMessage(data.text, 'jarvis');
+        } else {
+          addMessage(data.error || 'Error al conectar con la IA.', 'jarvis');
+        }
       } catch {
         removeTyping();
         addMessage('Sin conexión con el servidor. Verificá tu internet.', 'jarvis');
@@ -727,7 +732,7 @@
         const h = BACKEND_URL !== LOCAL_BACKEND ? NGROK_HEADERS : {};
         await fetch(`${BACKEND_URL}/conversation`, { method: 'DELETE', headers: h }).catch(() => {});
       } else {
-        await fetch('/api/chat', { method: 'DELETE' }).catch(() => {});
+        // /api/gemini es stateless, no hay historial que limpiar en cloud
       }
       chat.innerHTML = '';
       addMessage('Sesión reiniciada. ¿En qué te puedo ayudar?', 'jarvis');
