@@ -1,14 +1,14 @@
 // api/gemini.js
-// Backend para chat con Gemini - Versión original corregida para Vercel
+// Backend para JARVIS - Compatible con el frontend proporcionado
 
 const GEMINI_API_KEYS = [
     process.env.GEMINI_KEY_1,
     process.env.GEMINI_KEY_2,
     process.env.GEMINI_KEY_3,
     process.env.GEMINI_KEY_4
-].filter(k => k && k.trim() !== '');
+].filter(k => k && k.trim() !== '' && k.startsWith('AIzaSy'));
 
-// Tus modelos originales (gemini-1.5-flash primero para garantizar que funcione)
+// Tus modelos originales (gemini-1.5-flash primero como fallback garantizado)
 const MODELS = [
     "gemini-1.5-flash",
     "gemini-3-flash-preview",
@@ -18,17 +18,14 @@ const MODELS = [
 ];
 
 export default async function handler(req, res) {
-    // ✅ CORS headers para Vercel
+    // ✅ CORS headers para Vercel + tu dominio
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
-    
+    if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Método no permitido' });
+        return res.status(405).json({ success: false, error: 'Método no permitido' });
     }
 
     // 🔑 Validación de API Keys
@@ -36,18 +33,16 @@ export default async function handler(req, res) {
         console.error("❌ GEMINI_API_KEYS no configuradas en Vercel");
         return res.status(500).json({ 
             success: false,
-            error: "CONFIG_ERROR",
-            message: "Configura GEMINI_KEY_1 en Vercel → Settings → Environment Variables" 
+            error: "Configuración incompleta: GEMINI_API_KEY no definida" 
         });
     }
 
-    // 📦 Validación del body
+    // 📦 Validación del body (formato exacto que espera tu frontend)
     const { contents } = req.body || {};
     if (!contents || !Array.isArray(contents) || contents.length === 0) {
         return res.status(400).json({ 
             success: false,
-            error: "INVALID_REQUEST",
-            message: "Formato esperado: { contents: [{ parts: [{ text: '...' }] }] }" 
+            error: "Formato inválido: se requiere un array 'contents'" 
         });
     }
 
@@ -56,11 +51,7 @@ export default async function handler(req, res) {
     // 🔄 Intentar con cada modelo y key disponible
     for (const modelName of MODELS) {
         const keysToTry = [...GEMINI_API_KEYS].filter(k => !blockedKeys.has(k));
-        
-        if (keysToTry.length === 0) {
-            console.warn(`⚠️ No hay keys disponibles para el modelo: ${modelName}`);
-            continue;
-        }
+        if (keysToTry.length === 0) continue;
 
         for (const apiKey of keysToTry) {
             let keyBlocked = false;
@@ -71,10 +62,7 @@ export default async function handler(req, res) {
                     
                     const response = await fetch(url, {
                         method: 'POST',
-                        headers: { 
-                            'Content-Type': 'application/json',
-                            'User-Agent': 'Jarvis-App/1.0'
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ contents }),
                         signal: AbortSignal.timeout(30000)
                     });
@@ -82,80 +70,58 @@ export default async function handler(req, res) {
                     const raw = await response.text();
                     let data;
                     
-                    try { 
-                        data = JSON.parse(raw); 
-                    } catch (parseError) {
-                        console.warn(`⚠️ No se pudo parsear JSON de ${modelName}/${apiVersion}`);
-                        continue;
+                    try { data = JSON.parse(raw); } 
+                    catch { continue; }
+
+                    // ✅ Respuesta exitosa - formato exacto que espera tu frontend
+                    if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
+                        return res.status(200).json({
+                            success: true,
+                            text: data.candidates[0].content.parts[0].text,
+                            model: modelName
+                        });
                     }
 
-                    // ✅ Respuesta exitosa
-                    if (response.ok && data.candidates && data.candidates.length > 0) {
-                        const text = data.candidates[0]?.content?.parts?.[0]?.text;
-                        if (text) {
-                            console.log(`✅ Éxito con modelo: ${modelName} (${apiVersion})`);
-                            return res.status(200).json({
-                                success: true,
-                                text: text,
-                                model: modelName
-                            });
-                        }
-                    }
-
-                    // 🚫 Contenido bloqueado por políticas de seguridad
-                    if (data.promptFeedback && data.promptFeedback.blockReason) {
-                        console.warn(`🚫 Contenido bloqueado: ${data.promptFeedback.blockReason}`);
+                    // 🚫 Contenido bloqueado por políticas
+                    if (data.promptFeedback?.blockReason) {
                         return res.status(400).json({
                             success: false,
-                            error: "CONTENT_BLOCKED",
-                            reason: data.promptFeedback.blockReason
+                            error: `Contenido bloqueado: ${data.promptFeedback.blockReason}`
                         });
                     }
 
                     const errMsg = data.error?.message || '';
                     const status = response.status;
 
-                    // 🔒 Key inválida → marcar como bloqueada
+                    // 🔒 Key inválida
                     if (errMsg.includes('API key') || errMsg.includes('leaked') || status === 401) {
-                        console.error(`🔒 Key inválida: ${apiKey.slice(0, 10)}...`);
                         blockedKeys.add(apiKey);
                         keyBlocked = true;
                         break;
                     }
 
-                    // ❌ Modelo no encontrado → probar siguiente
+                    // ❌ Modelo no encontrado → siguiente
                     if (status === 404 || errMsg.includes('not found')) {
-                        console.warn(`⏭️ Modelo no disponible: ${modelName}/${apiVersion}`);
                         continue;
                     }
 
-                    // ⏳ Rate limit → esperar y continuar
+                    // ⏳ Rate limit
                     if (status === 429) {
-                        console.warn(`⏳ Rate limit con ${modelName}/${apiVersion}`);
                         await new Promise(r => setTimeout(r, 1000));
                         continue;
                     }
 
-                    // Otros errores
-                    console.warn(`⚠️ Error ${status} con ${modelName}/${apiVersion}: ${errMsg}`);
-
                 } catch (error) {
-                    console.warn(`💥 Excepción con ${modelName}/${apiVersion}: ${error.message}`);
                     continue;
                 }
             }
-            
-            if (keyBlocked) {
-                continue;
-            }
+            if (keyBlocked) continue;
         }
     }
 
-    // ❌ Si llegamos acá, todo falló
-    console.error("❌ Todos los intentos a Gemini fallaron");
+    // ❌ Todo falló - formato que tu frontend maneja
     return res.status(500).json({
         success: false,
-        error: "GEMINI_UNAVAILABLE",
-        message: "No se pudo conectar con Gemini. Verificá tu API key en Vercel."
+        error: "No se pudo obtener respuesta de Gemini. Verificá tu API key en Vercel."
     });
 }
