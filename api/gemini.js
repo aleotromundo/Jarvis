@@ -4,8 +4,9 @@
 const GEMINI_API_KEYS = [
     process.env.GEMINI_KEY_1,
     process.env.GEMINI_KEY_2,
-    process.env.GEMINI_KEY_3
-].filter(Boolean); // Elimina undefined
+    process.env.GEMINI_KEY_3,
+    process.env.GEMINI_KEY_4
+].filter(Boolean);
 
 const MODELS = [
     "gemini-3-flash-preview",
@@ -15,12 +16,7 @@ const MODELS = [
     "gemini-1.5-flash"
 ];
 
-const SYSTEM_PROMPT = `Eres Jarvis, un asistente personal inteligente que corre en la PC del usuario.
-Tu trabajo es entender lo que el usuario quiere en lenguaje natural y responder de forma útil y concisa.
-Respondé siempre en español rioplatense. Sé directo, amigable y preciso.`;
-
 export default async function handler(req, res) {
-    // Solo permitir POST
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Método no permitido' });
     }
@@ -31,13 +27,19 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Formato inválido' });
     }
 
-    // Intentar con cada modelo y cada clave
+    const blockedKeys = new Set();
+
     for (let modelName of MODELS) {
-        let keys = [...GEMINI_API_KEYS].sort(() => Math.random() - 0.5);
-        
+        let keys = [...GEMINI_API_KEYS]
+            .filter(k => !blockedKeys.has(k))
+            .sort(() => Math.random() - 0.5);
+
+        if (keys.length === 0) break;
+
         for (let key of keys) {
             const apiVersions = ['v1beta', 'v1'];
-            
+            let keyBlocked = false;
+
             for (let ver of apiVersions) {
                 try {
                     const response = await fetch(
@@ -45,10 +47,7 @@ export default async function handler(req, res) {
                         {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-                                contents
-                            })
+                            body: JSON.stringify({ contents })
                         }
                     );
 
@@ -60,20 +59,41 @@ export default async function handler(req, res) {
                             text: data.candidates[0].content.parts[0].text,
                             model: modelName
                         });
-                    } else if (data.error?.message.includes("leaked")) {
-                        console.error(`🔒 Clave bloqueada: ${key.slice(0, 10)}...`);
-                        break; // Saltar a la siguiente clave
                     }
+
+                    const errMsg = data.error?.message || '';
+
+                    if (response.status === 429) {
+                        console.warn(`⏳ Rate limit: clave ${key.slice(0, 10)}... modelo ${modelName}/${ver}`);
+                        await new Promise(r => setTimeout(r, 300));
+                        continue; // prueba v1 si estaba en v1beta, o pasa a siguiente clave
+                    }
+
+                    if (errMsg.includes('leaked') || errMsg.includes('API_KEY_INVALID') || response.status === 400) {
+                        console.error(`🔒 Clave inválida/bloqueada: ${key.slice(0, 10)}...`);
+                        blockedKeys.add(key);
+                        keyBlocked = true;
+                        break;
+                    }
+
+                    if (response.status === 404) {
+                        console.warn(`❌ Modelo no encontrado: ${modelName}/${ver}`);
+                        break; // prueba v1, si ya es v1 pasa al siguiente modelo
+                    }
+
+                    console.warn(`⚠️ Error ${response.status} con ${modelName}/${ver}: ${errMsg}`);
+
                 } catch (error) {
-                    console.error(`Error con ${modelName}:`, error.message);
+                    console.error(`💥 Excepción con ${modelName}/${ver}:`, error.message);
                 }
             }
+
+            if (keyBlocked) continue;
         }
     }
 
-    // Si llegamos aquí, todas las claves fallaron
-    return res.status(500).json({ 
-        success: false, 
-        error: 'Todas las claves API están agotadas o bloqueadas' 
+    return res.status(500).json({
+        success: false,
+        error: 'Todas las claves API están agotadas o bloqueadas'
     });
 }
