@@ -526,12 +526,23 @@
       textInput.placeholder = 'Ingresá un comando o pregunta...';
     }
 
-    function addMessage(text, who, isAction = false) {
+    function speak(text) {
+      if (!window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+      const utt = new SpeechSynthesisUtterance(text);
+      utt.lang = 'es-ES';
+      utt.rate = 1.05;
+      utt.pitch = 0.9;
+      window.speechSynthesis.speak(utt);
+    }
+
+    function addMessage(text, who, isAction = false, withVoice = false) {
       const div = document.createElement('div');
       div.className = `message ${who}${isAction ? ' msg-action' : ''}`;
       div.textContent = text;
       chat.appendChild(div);
       chat.scrollTop = chat.scrollHeight;
+      if (withVoice && who === 'jarvis') speak(text);
       return div;
     }
 
@@ -656,7 +667,7 @@
           });
           const data = await res.json();
           removeTyping();
-          addMessage(data.response, 'jarvis', data.action_executed || false);
+          addMessage(data.response, 'jarvis', data.action_executed || false, true);
           return;
         } catch {
           // Backend cayó — marcar offline y caer a Vercel
@@ -680,7 +691,7 @@
         const data = await res.json();
         removeTyping();
         if (data.success && data.text) {
-          addMessage(data.text, 'jarvis');
+          addMessage(data.text, 'jarvis', false, true);
         } else {
           addMessage(data.error || 'Error al conectar con la IA.', 'jarvis');
         }

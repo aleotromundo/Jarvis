@@ -9,12 +9,14 @@ const GEMINI_API_KEYS = [
 ].filter(Boolean); // Elimina undefined
 
 const MODELS = [
-    "gemini-3-flash-preview",
-    "gemini-3-pro",
-    "gemini-3-flash-8b",
-    "gemini-3-flash",
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-lite",
     "gemini-1.5-flash"
 ];
+
+const SYSTEM_PROMPT = `Eres Jarvis, un asistente personal inteligente que corre en la PC del usuario.
+Tu trabajo es entender lo que el usuario quiere en lenguaje natural y responder de forma útil y concisa.
+Respondé siempre en español rioplatense. Sé directo, amigable y preciso.`;
 
 export default async function handler(req, res) {
     // Solo permitir POST
@@ -42,7 +44,10 @@ export default async function handler(req, res) {
                         {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ contents })
+                            body: JSON.stringify({
+                                system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+                                contents
+                            })
                         }
                     );
 
