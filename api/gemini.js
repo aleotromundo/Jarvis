@@ -1,128 +1,56 @@
-// api/gemini.js
-// Backend para chat con Gemini - Versión robusta y lista para producción
-
-const GEMINI_API_KEYS = [
-    process.env.GEMINI_KEY_1,
-    process.env.GEMINI_KEY_2,
-    process.env.GEMINI_KEY_3,
-    process.env.GEMINI_KEY_4
-].filter(k => k && k.trim() !== '' && k.startsWith('AIzaSy'));
-
-// Tus modelos originales (gemini-1.5-flash primero como fallback garantizado)
-const MODELS = [
-    "gemini-1.5-flash",
-    "gemini-3-flash-preview",
-    "gemini-3-pro",
-    "gemini-3-flash-8b",
-    "gemini-3-flash"
-];
-
+// api/gemini.js - VERSIÓN MÍNIMA Y DIRECTA
 export default async function handler(req, res) {
-    // ✅ CORS headers para Vercel
-    res.setHeader('Access-Control-Allow-Origin', 'https://jarvis-mu-five.vercel.app');
-    res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    
+    // CORS básico
+    res.setHeader('Access-Control-Allow-Origin', '*');
     if (req.method === 'OPTIONS') return res.status(200).end();
-    if (req.method !== 'POST') return res.status(405).json({ error: 'Método no permitido' });
+    if (req.method !== 'POST') return res.status(405).end();
 
-    // 🔑 Validación de API Keys
-    if (GEMINI_API_KEYS.length === 0) {
-        console.error("❌ GEMINI_API_KEYS no configuradas en Vercel");
-        return res.status(500).json({ 
-            error: "CONFIG_ERROR",
-            message: "Configura GEMINI_KEY_1 en Vercel → Settings → Environment Variables" 
-        });
-    }
-
-    // 📦 Validación del body
-    const { contents } = req.body || {};
-    if (!contents?.[0]?.parts?.[0]?.text) {
-        return res.status(400).json({ 
-            error: "INVALID_REQUEST",
-            message: "Formato esperado: { contents: [{ parts: [{ text: '...' }] }] }" 
-        });
-    }
-
-    const blockedKeys = new Set();
+    // 🔑 Tu API Key (la primera configurada)
+    const apiKey = process.env.GEMINI_KEY_1;
     
-    // 🔄 Intentar con cada modelo y key disponible
-    for (const modelName of MODELS) {
-        for (const apiKey of GEMINI_API_KEYS) {
-            if (blockedKeys.has(apiKey)) continue;
-            
-            for (const apiVersion of ['v1beta', 'v1']) {
-                try {
-                    const url = `https://generativelanguage.googleapis.com/${apiVersion}/models/${modelName}:generateContent?key=${apiKey}`;
-                    
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ contents }),
-                        signal: AbortSignal.timeout(30000)
-                    });
-
-                    const raw = await response.text();
-                    let data;
-                    
-                    try { data = JSON.parse(raw); } 
-                    catch { 
-                        if (response.ok && raw.includes('candidates')) continue;
-                        continue; 
-                    }
-
-                    // ✅ Respuesta exitosa
-                    if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
-                        return res.status(200).json({
-                            success: true,
-                            text: data.candidates[0].content.parts[0].text,
-                            model: modelName
-                        });
-                    }
-
-                    // 🚫 Contenido bloqueado por políticas de seguridad
-                    if (data.promptFeedback?.blockReason) {
-                        return res.status(400).json({
-                            error: "CONTENT_BLOCKED",
-                            reason: data.promptFeedback.blockReason
-                        });
-                    }
-
-                    const errMsg = data.error?.message || '';
-                    const status = response.status;
-
-                    // 🔒 Key inválida → marcar como bloqueada
-                    if (errMsg.includes('API key') || errMsg.includes('leaked') || status === 401) {
-                        blockedKeys.add(apiKey);
-                        break;
-                    }
-
-                    // ❌ Modelo no encontrado → probar siguiente
-                    if (status === 404 || errMsg.includes('not found')) {
-                        continue;
-                    }
-
-                    // ⏳ Rate limit → esperar y continuar
-                    if (status === 429) {
-                        await new Promise(r => setTimeout(r, 1000));
-                        continue;
-                    }
-
-                } catch (error) {
-                    // Errores de red/timeout → continuar con siguiente intento
-                    if (error.name !== 'AbortError') {
-                        console.warn(`⚠️ Error con ${modelName}:`, error.message);
-                    }
-                    continue;
-                }
-            }
-        }
+    if (!apiKey) {
+        return res.status(500).json({ error: "NO_API_KEY", message: "Configura GEMINI_KEY_1 en Vercel" });
     }
 
-    // ❌ Si llegamos acá, todo falló
-    console.error("❌ Todos los intentos a Gemini fallaron");
-    return res.status(500).json({
-        error: "GEMINI_UNAVAILABLE",
-        message: "No se pudo conectar con Gemini. Intenta nuevamente en unos segundos."
-    });
+    // 📦 Body mínimo
+    const { contents } = req.body || {};
+    const prompt = contents?.[0]?.parts?.[0]?.text || "Hola";
+
+    // 🎯 Solo gemini-1.5-flash (el que SÍ existe y funciona)
+    const model = "gemini-1.5-flash";
+    const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
+
+        const raw = await response.text();
+        
+        // ❌ Si no es 200, devolver el error EXACTO de Gemini
+        if (!response.ok) {
+            console.error("❌ Gemini error:", raw);
+            return res.status(response.status).json({
+                error: "GEMINI_API_ERROR",
+                status: response.status,
+                message: raw
+            });
+        }
+
+        // ✅ Parsear respuesta exitosa
+        const data = JSON.parse(raw);
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        
+        if (!text) {
+            return res.status(500).json({ error: "EMPTY_RESPONSE", raw: data });
+        }
+
+        return res.status(200).json({ success: true, text, model });
+
+    } catch (err) {
+        console.error("💥 Network error:", err.message);
+        return res.status(500).json({ error: "NETWORK_ERROR", message: err.message });
+    }
 }
