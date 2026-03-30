@@ -1,106 +1,128 @@
-// api/gemini.js - VERSIÓN DIAGNÓSTICO COMPLETO
+// api/gemini.js
+// Backend para chat con Gemini - Versión robusta y lista para producción
+
+const GEMINI_API_KEYS = [
+    process.env.GEMINI_KEY_1,
+    process.env.GEMINI_KEY_2,
+    process.env.GEMINI_KEY_3,
+    process.env.GEMINI_KEY_4
+].filter(k => k && k.trim() !== '' && k.startsWith('AIzaSy'));
+
+// Tus modelos originales (gemini-1.5-flash primero como fallback garantizado)
+const MODELS = [
+    "gemini-1.5-flash",
+    "gemini-3-flash-preview",
+    "gemini-3-pro",
+    "gemini-3-flash-8b",
+    "gemini-3-flash"
+];
+
 export default async function handler(req, res) {
-    if (req.method !== 'POST') return res.status(405).end();
+    // ✅ CORS headers para Vercel
+    res.setHeader('Access-Control-Allow-Origin', 'https://jarvis-mu-five.vercel.app');
+    res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    
+    if (req.method === 'OPTIONS') return res.status(200).end();
+    if (req.method !== 'POST') return res.status(405).json({ error: 'Método no permitido' });
 
-    const keys = [
-        process.env.GEMINI_KEY_1,
-        process.env.GEMINI_KEY_2,
-        process.env.GEMINI_KEY_3,
-        process.env.GEMINI_KEY_4
-    ].filter(k => k && k.trim() !== '');
-
-    // 🚨 LOG CRÍTICO: ¿Hay keys?
-    console.log("=== 🔍 GEMINI DEBUG START ===");
-    console.log("Keys configuradas:", keys.length);
-    console.log("Primera key (preview):", keys[0]?.slice(0, 12) + '...');
-    console.log("VERCEL_ENV:", process.env.VERCEL_ENV);
-    console.log("NODE_ENV:", process.env.NODE_ENV);
-
-    if (keys.length === 0) {
-        console.error("❌ NO HAY API KEYS CONFIGURADAS");
-        return res.status(500).json({
-            error: "NO_API_KEYS",
-            message: "Agrega GEMINI_KEY_1 en Vercel → Settings → Environment Variables"
+    // 🔑 Validación de API Keys
+    if (GEMINI_API_KEYS.length === 0) {
+        console.error("❌ GEMINI_API_KEYS no configuradas en Vercel");
+        return res.status(500).json({ 
+            error: "CONFIG_ERROR",
+            message: "Configura GEMINI_KEY_1 en Vercel → Settings → Environment Variables" 
         });
     }
 
-    const { contents } = req.body;
+    // 📦 Validación del body
+    const { contents } = req.body || {};
     if (!contents?.[0]?.parts?.[0]?.text) {
-        return res.status(400).json({ error: "INVALID_BODY", expected: '{contents:[{parts:[{text:"..."}]}]}' });
+        return res.status(400).json({ 
+            error: "INVALID_REQUEST",
+            message: "Formato esperado: { contents: [{ parts: [{ text: '...' }] }] }" 
+        });
     }
 
-    const MODELS = [
-        "gemini-3-flash-preview",
-        "gemini-3-pro",
-        "gemini-3-flash-8b", 
-        "gemini-3-flash",
-        "gemini-1.5-flash"
-    ];
-
-    const errorsLog = [];
-    const key = keys[0]; // Test con la primera key
-
-    for (let model of MODELS) {
-        for (let ver of ['v1beta', 'v1']) {
-            const url = `https://generativelanguage.googleapis.com/${ver}/models/${model}:generateContent?key=${key}`;
+    const blockedKeys = new Set();
+    
+    // 🔄 Intentar con cada modelo y key disponible
+    for (const modelName of MODELS) {
+        for (const apiKey of GEMINI_API_KEYS) {
+            if (blockedKeys.has(apiKey)) continue;
             
-            try {
-                console.log(`📡 Request: POST ${url.slice(0, 80)}...`);
-                const start = Date.now();
-                
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents }),
-                    signal: AbortSignal.timeout(25000)
-                });
-                
-                const duration = Date.now() - start;
-                const rawText = await response.text();
-                
-                console.log(`⏱️ ${duration}ms | Status: ${response.status}`);
-                
-                // Parsear respuesta
-                let data;
-                try { data = JSON.parse(rawText); } 
-                catch (e) {
-                    console.warn(`❌ No es JSON: ${rawText.slice(0, 200)}`);
-                    errorsLog.push({ model, version: ver, status: response.status, error: 'INVALID_JSON', raw: rawText.slice(0, 100) });
+            for (const apiVersion of ['v1beta', 'v1']) {
+                try {
+                    const url = `https://generativelanguage.googleapis.com/${apiVersion}/models/${modelName}:generateContent?key=${apiKey}`;
+                    
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contents }),
+                        signal: AbortSignal.timeout(30000)
+                    });
+
+                    const raw = await response.text();
+                    let data;
+                    
+                    try { data = JSON.parse(raw); } 
+                    catch { 
+                        if (response.ok && raw.includes('candidates')) continue;
+                        continue; 
+                    }
+
+                    // ✅ Respuesta exitosa
+                    if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
+                        return res.status(200).json({
+                            success: true,
+                            text: data.candidates[0].content.parts[0].text,
+                            model: modelName
+                        });
+                    }
+
+                    // 🚫 Contenido bloqueado por políticas de seguridad
+                    if (data.promptFeedback?.blockReason) {
+                        return res.status(400).json({
+                            error: "CONTENT_BLOCKED",
+                            reason: data.promptFeedback.blockReason
+                        });
+                    }
+
+                    const errMsg = data.error?.message || '';
+                    const status = response.status;
+
+                    // 🔒 Key inválida → marcar como bloqueada
+                    if (errMsg.includes('API key') || errMsg.includes('leaked') || status === 401) {
+                        blockedKeys.add(apiKey);
+                        break;
+                    }
+
+                    // ❌ Modelo no encontrado → probar siguiente
+                    if (status === 404 || errMsg.includes('not found')) {
+                        continue;
+                    }
+
+                    // ⏳ Rate limit → esperar y continuar
+                    if (status === 429) {
+                        await new Promise(r => setTimeout(r, 1000));
+                        continue;
+                    }
+
+                } catch (error) {
+                    // Errores de red/timeout → continuar con siguiente intento
+                    if (error.name !== 'AbortError') {
+                        console.warn(`⚠️ Error con ${modelName}:`, error.message);
+                    }
                     continue;
                 }
-
-                // ✅ Éxito
-                if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
-                    console.log(`✅ SUCCESS con ${model} (${ver})`);
-                    return res.status(200).json({
-                        success: true,
-                        text: data.candidates[0].content.parts[0].text,
-                        model,
-                        version: ver
-                    });
-                }
-
-                // ❌ Capturar error específico de Gemini
-                const geminiError = data.error || data.promptFeedback;
-                const errorMsg = geminiError?.message || geminiError?.blockReason || rawText.slice(0, 150);
-                
-                console.warn(`⚠️ FALLÓ ${model} (${ver}):`, errorMsg);
-                errorsLog.push({ model, version: ver, status: response.status, error: errorMsg });
-
-            } catch (err) {
-                console.error(`💥 EXCEPTION ${model} (${ver}):`, err.name, err.message);
-                errorsLog.push({ model, version: ver, error: `${err.name}: ${err.message}` });
             }
         }
     }
 
-    // 🚨 Si llegamos acá: TODO FALLÓ - Mostrar resumen completo
-    console.error("=== ❌ ALL_ATTEMPTS_FAILED ===");
-    console.error("Resumen de errores:", JSON.stringify(errorsLog, null, 2));
-    
+    // ❌ Si llegamos acá, todo falló
+    console.error("❌ Todos los intentos a Gemini fallaron");
     return res.status(500).json({
-        error: "ALL_ATTEMPTS_FAILED",
-        message: "Todos los intentos fallaron. Revisa los logs de Vercel.",
-        debug: process.env.VERCEL_ENV !== 'production' ? { errors: errorsLog } : undefined
+        error: "GEMINI_UNAVAILABLE",
+        message: "No se pudo conectar con Gemini. Intenta nuevamente en unos segundos."
     });
 }
