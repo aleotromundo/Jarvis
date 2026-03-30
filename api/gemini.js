@@ -9,8 +9,10 @@ const GEMINI_API_KEYS = [
 ].filter(Boolean); // Elimina undefined
 
 const MODELS = [
-    "gemini-2.0-flash",
-    "gemini-2.0-flash-lite",
+    "gemini-3-flash-preview",
+    "gemini-3-pro",
+    "gemini-3-flash-8b",
+    "gemini-3-flash",
     "gemini-1.5-flash"
 ];
 
