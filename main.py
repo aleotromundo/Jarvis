@@ -24,16 +24,27 @@ app.add_middleware(
 engine = pyttsx3.init()
 
 # ── GEMINI CONFIG ──────────────────────────────────────────────────────────────
-# Leemos la clave desde el archivo api_key.txt para evitar bugs de Windows
-GEMINI_API_KEY = ""
-if os.path.exists("api_key.txt"):
-    with open("api_key.txt", "r") as f:
-        # .strip() elimina cualquier salto de línea, espacio o basura
-        GEMINI_API_KEY = f.read().replace('"', '').replace("'", "").strip()
+# Cargamos todas las keys disponibles desde api_key.txt, api_key2.txt, etc.
+def _load_keys():
+    keys = []
+    for name in ["api_key.txt", "api_key2.txt", "api_key3.txt", "api_key4.txt"]:
+        if os.path.exists(name):
+            with open(name, "r") as f:
+                k = f.read().replace('"', '').replace("'", "").strip()
+                if k:
+                    keys.append(k)
+    return keys
 
-# Modelo oficial de Google
-MODEL_NAME = "gemini-2.0-flash-lite"
-GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={GEMINI_API_KEY}"
+GEMINI_API_KEYS = _load_keys()
+
+MODELS = [
+    "gemini-3-flash-preview",
+    "gemini-3-pro",
+    "gemini-3-flash-8b",
+    "gemini-3-flash",
+    "gemini-1.5-flash"
+]
+
 
 SYSTEM_PROMPT = """Eres Jarvis, un asistente personal inteligente que corre en la PC del usuario.
 Tu trabajo es entender lo que el usuario quiere en lenguaje natural y responder de forma útil y concisa.
@@ -86,31 +97,35 @@ async def ask_gemini(user_message: str) -> str:
         }
     }
 
-    import asyncio
-    data = None
-    for attempt in range(3):
-        async with httpx.AsyncClient(timeout=20.0) as client:
-            res = await client.post(GEMINI_URL, json=payload)
-        if res.status_code == 429:
-            wait = 2 ** attempt
-            print(f"  [429] Rate limit — reintentando en {wait}s (intento {attempt+1}/3)")
-            await asyncio.sleep(wait)
-            continue
-        res.raise_for_status()
-        data = res.json()
-        break
+    import asyncio, random
+    keys = GEMINI_API_KEYS[:]
+    random.shuffle(keys)
 
-    if data is None:
-        raise Exception("Rate limit de Gemini. Esperá unos segundos y reintentá.")
+    for model in MODELS:
+        for key in keys:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+            try:
+                async with httpx.AsyncClient(timeout=20.0) as client:
+                    res = await client.post(url, json=payload)
+                if res.status_code == 429:
+                    await asyncio.sleep(1)
+                    continue
+                if not res.is_success:
+                    continue
+                data = res.json()
+                if "candidates" not in data:
+                    continue
+                reply = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                conversation_history.append({
+                    "role": "model",
+                    "parts": [{"text": reply}]
+                })
+                return reply
+            except Exception:
+                continue
 
-    reply = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+    raise Exception("Todas las claves y modelos fallaron.")
 
-    conversation_history.append({
-        "role": "model",
-        "parts": [{"text": reply}]
-    })
-
-    return reply
 
 # ── PARSE JSON ROBUSTO ────────────────────────────────────────────────────────
 def try_parse_action(raw: str):
@@ -241,9 +256,12 @@ if __name__ == "__main__":
     print("🤖  JARVIS AI  —  Powered by Gemini")
     print("=" * 55)
     print()
-    if not GEMINI_API_KEY:
-        print("⚠️  ATENCION: No se encontro la API KEY en api_key.txt.")
-        print("   Por favor, ejecuta el archivo .bat para configurarla.")
+    if not GEMINI_API_KEYS:
+        print("⚠️  ATENCION: No se encontro ninguna API KEY.")
+        print("   Poné tu key en api_key.txt (o api_key2.txt, api_key3.txt, api_key4.txt para más).")
+        print()
+    else:
+        print(f"🔑  {len(GEMINI_API_KEYS)} API key(s) cargada(s).")
         print()
     print("🚀  Backend local: http://127.0.0.1:8000")
     print()

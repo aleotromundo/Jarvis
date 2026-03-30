@@ -4,8 +4,7 @@
 const GEMINI_API_KEYS = [
     process.env.GEMINI_KEY_1,
     process.env.GEMINI_KEY_2,
-    process.env.GEMINI_KEY_3,
-    process.env.GEMINI_KEY_4
+    process.env.GEMINI_KEY_3
 ].filter(Boolean); // Elimina undefined
 
 const MODELS = [
